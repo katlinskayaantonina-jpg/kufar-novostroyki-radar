@@ -334,7 +334,7 @@ function roundTop(x,y,w,h){ const r = Math.min(4, w/2, h); return `M${x},${y+h} 
 function niceMax(m){ const p = Math.pow(10, Math.floor(Math.log10(m))); for(const k of [1,2,2.5,5,10]) if(k*p >= m) return k*p; return 10*p; }
 
 function heatmap(grid, title){
-  const H0 = 7;
+  const H0 = 6;
   const max2 = Math.max(1, ...grid.flatMap(r => r.slice(H0)));
   let s = `<div style="overflow-x:auto"><div class="heat" style="grid-template-columns:28px repeat(${24-H0},minmax(26px,1fr));min-width:520px" role="table" aria-label="${esc(title)}"><div></div>`;
   for(let h=H0; h<24; h++) s += `<div class="hd">${h}</div>`;
@@ -369,7 +369,7 @@ function viewOverview(A){
     <div class="panel"><h2>Прирост просмотров по дням</h2>${barChart(A.byDay.map(x=>x.dv), labels, "bar-v", {title:"Просмотры по дням"})}</div>
     <div class="panel"><h2>Открытия номера по дням</h2>${barChart(A.byDay.map(x=>x.dp), labels, "bar-p", {title:"Открытия номера по дням"})}</div>
   </div>
-  <p class="note">Данные собираются каждый час с 7:00 до 23:00 по Минску. Прирост за ночь виден утром отдельной строкой во вкладке «По часам».</p>`;
+  <p class="note">Данные собираются каждый час с 6:00 до 0:00 по Минску. Прирост за ночь виден утром отдельной строкой во вкладке «По часам».</p>`;
 }
 
 function sortRows(rows, tab, def){
@@ -492,17 +492,17 @@ function viewEmployees(A){
 
 // ---------- по часам: ночной столбец не растягивает шкалу
 function viewHours(A){
-  const hrs = [...Array(17).keys()].map(i => i+7);          // 7..23
-  const labels = ["Ночь (23:00–7:00)", ...hrs.map(h => `${h}:00–${h+1}:00`)];
+  const hrs = [...Array(18).keys()].map(i => i+6);          // 6..23
+  const labels = ["Ночь (0:00–6:00)", ...hrs.map(h => `${h}:00–${h+1}:00`)];
   const short = i => i === 0 ? "ночь" : hrs[i-1];
-  const night = arr => arr[NIGHT] + arr.slice(0,7).reduce((a,b)=>a+b,0);
+  const night = arr => arr[NIGHT] + arr.slice(0,6).reduce((a,b)=>a+b,0);
   const ph = [night(A.phHour), ...hrs.map(h => A.phHour[h])];
   const vh = [night(A.vHour), ...hrs.map(h => A.vHour[h])];
   const total = ph.reduce((a,b)=>a+b,0) + A.phHour[SPREAD];
   const mx = Math.max(...hrs.map(h=>A.phHour[h])), best = hrs[hrs.map(h=>A.phHour[h]).indexOf(mx)];
   return `<div class="kpis">
     ${kpi(mx ? best+":00–"+(best+1)+":00" : "—","Час, когда чаще всего открывают номер","по выбранным фильтрам")}
-    ${kpi(fmt(ph[0]),"Открытий номера за ночь","между 23:00 и 7:00, видны утром")}
+    ${kpi(fmt(ph[0]),"Открытий номера за ночь","между 0:00 и 6:00, видны утром")}
     ${kpi(fmt(A.phHour[SPREAD]),"Открытий, час не определён",`${pct(A.phHour[SPREAD], total)} от всех — объявления, которые замеряются раз в несколько часов`)}
   </div>
   <div class="grid2">
@@ -511,7 +511,7 @@ function viewHours(A){
   </div>
   <div class="panel sec"><h2>Открытия номера: день недели × час</h2>${heatmap(A.heat,"Открытия номера по дням недели и часам")}</div>
   <div class="panel sec"><h2>Просмотры: день недели × час</h2>${heatmap(A.heatV,"Просмотры по дням недели и часам")}</div>
-  <p class="note">Час — середина интервала между двумя замерами (замер каждый час с 7 до 23). Пунктирный столбец «ночь» — всё, что накопилось с 23:00 до 7:00; он не влияет на масштаб, его число подписано сверху. Просмотры по часам учитывают фильтры компании, сотрудника и комнатности; поиск и «только новостройки» на них не действуют.</p>`;
+  <p class="note">Час — середина интервала между двумя замерами (замер каждый час с 6:00 до 0:00). Пунктирный столбец «ночь» — всё, что накопилось с 0:00 до 6:00 (до 9 октября — с 23:00 до 7:00); он не влияет на масштаб, его число подписано сверху. Просмотры по часам учитывают фильтры компании, сотрудника и комнатности; поиск и «только новостройки» на них не действуют.</p>`;
 }
 
 // ---------- что размещают
