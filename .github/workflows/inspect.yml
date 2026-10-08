@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["collector/inspect_data.py", ".github/workflows/inspect.yml"]
+    paths: ["collector/inspect_data.py", "collector/inspect_counters.py", ".github/workflows/inspect.yml"]
 permissions:
   contents: read
 jobs:
@@ -17,4 +17,4 @@ jobs:
       - env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: python collector/inspect_data.py
+        run: python collector/inspect_data.py && python collector/inspect_counters.py
