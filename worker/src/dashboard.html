@@ -201,7 +201,7 @@ const TZ_OFF = 3 * 3600 * 1000; // Минск, UTC+3
 const NIGHT = 24, SPREAD = 25;
 const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const EV_NAMES = {new:"Новое", gone:"Снято", back:"Вернулось", raise:"Поднятие", price:"Цена", promo_hl:"Выделение", promo_pp:"Закреп вверху", promo_rb:"Ленточка", title:"Заголовок", photo:"Обложка"};
-const TABS = [["overview","Обзор"],["promo","Продвижение"],["ads","Объявления за период"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["works","Что работает"]];
+const TABS = [["overview","Обзор"],["promo","Продвижение"],["ads","Объявления за период"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["organic","Топ органика"],["promoted","Топ продвижение"]];
 
 let CAT = null, CUBE = null, STATUS = null;
 const S = { period:"7", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"overview", sort:{}, limit:60 };
@@ -219,6 +219,8 @@ const wdOf = d => (new Date(d+"T12:00:00Z").getUTCDay() + 6) % 7;
 const dtLocal = ts => { if(!ts) return "—"; const d = new Date(ts*1000+TZ_OFF); return d.toISOString().slice(8,10)+"."+d.toISOString().slice(5,7)+" "+d.toISOString().slice(11,16); };
 const hourOfTs = ts => new Date(ts*1000+TZ_OFF).getUTCHours();
 const dayOfTs = ts => dayStr(ts*1000);
+let EUR_RATE = 0.86;
+const eur = a => a ? (a.pe || (a.pu ? Math.round(a.pu*EUR_RATE) : null)) : null;
 const roomKey = r => { const n = parseInt(r,10); return !n ? "?" : n >= 4 ? "4+" : String(n); };
 
 async function getJSON(name){
@@ -384,8 +386,8 @@ function adRows(A, onlyWithActivity){
     const promoEv = x.ev.some(e => e[2].startsWith("promo_") && e[4]);
     const placed = a.lt0 || a.lt || a.fs;
     rows.push({id, a, dv:x.dv, dp:x.dp, conv: x.dv ? x.dp/x.dv : 0, raises, promoDays, promo: promoDays>0 || promoEv,
-      emp: empName(empKey(a)), ppm: a.pu && a.a ? a.pu/a.a : null, placed,
-      lastRaise: a.lt && placed && a.lt - placed > 600 ? a.lt : null, area:a.a||0, price:a.pu||0});
+      emp: empName(empKey(a)), ppm: eur(a) && a.a ? eur(a)/a.a : null, placed,
+      lastRaise: a.lt && placed && a.lt - placed > 600 ? a.lt : null, area:a.a||0, price:eur(a)||0});
   }
   return rows;
 }
@@ -422,7 +424,7 @@ function adCard(r, mode){
     <div class="ab">
       <div class="at">${esc(a.t)}</div>
       <div class="am">${esc(a.ad||"")}</div>
-      <div class="aw">${esc(r.emp)} · ${esc(a.r||"?")}-комн. · ${fmt1(a.a)} м² · ${fmt(a.pu)} $</div>
+      <div class="aw">${esc(r.emp)} · ${esc(a.r||"?")}-комн. · ${fmt1(a.a)} м² · ${fmt(eur(a))} €</div>
       <div class="ad8">${dates}</div>
       <div class="amet"><span><b>${fmt(r.dv)}</b> просм.</span><span><b>${fmt(r.dp)}</b> откр. номера</span><span>${r.dv?pct(r.dp,r.dv):"—"}</span></div>
       <div>${promoBadges(a)}${f ? `<span class="badge fast" title="Первые сутки после размещения: ${f[0]} просмотров, ${f[1]} открытий номера">🚀 быстрый старт</span>` : ""}${r.raises ? `<span class="badge">поднятий: ${r.raises}</span>` : ""}</div>
@@ -511,7 +513,7 @@ function viewPlaced(A){
     const t = a.lt0 || e[0]; byWd[(new Date(t*1000+TZ_OFF).getUTCDay()+6)%7]++; byHour[hourOfTs(t)]++;
     const g = a.a ? (Math.round(a.a*10)/10).toFixed(1) : "?";
     if(!groups.has(g)) groups.set(g,{area:g, ids:[], emps:new Set(), rooms:new Set(), last:0, prices:[]});
-    const G = groups.get(g); G.ids.push(e[1]); G.emps.add(empName(empKey(a))); G.rooms.add(a.r||"?"); G.last = Math.max(G.last, t); if(a.pu) G.prices.push(a.pu);
+    const G = groups.get(g); G.ids.push(e[1]); G.emps.add(empName(empKey(a))); G.rooms.add(a.r||"?"); G.last = Math.max(G.last, t); if(eur(a)) G.prices.push(eur(a));
   }
   PLACED_GROUPS = groups;
   const order = (m, keys) => keys.filter(k => m.has(k)).map(k => [k, m.get(k)]);
@@ -519,7 +521,7 @@ function viewPlaced(A){
   const small = {w:360, h:150};
   const gl = [...groups.values()].sort((a,b) => b.ids.length - a.ids.length || parseFloat(a.area)-parseFloat(b.area));
   const maxN = Math.max(1, ...gl.map(g=>g.ids.length));
-  const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Площадь, м²</th><th>Комн.</th><th class="num">Размещений</th><th style="min-width:120px"></th><th class="num">Сотрудников</th><th class="num">Цена $, от–до</th><th class="num">Последнее</th></tr></thead><tbody>${
+  const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Площадь, м²</th><th>Комн.</th><th class="num">Размещений</th><th style="min-width:120px"></th><th class="num">Сотрудников</th><th class="num">Цена €, от–до</th><th class="num">Последнее</th></tr></thead><tbody>${
     gl.slice(0, S.limit).map(g => `<tr class="clickable" data-area="${esc(g.area)}"><td><b>${esc(g.area.replace(".",","))}</b></td><td>${esc([...g.rooms].join(", "))}</td>
       <td class="num"><button class="cntbtn" data-area="${esc(g.area)}">${g.ids.length}</button></td><td><div class="track"><div style="width:${g.ids.length/maxN*100}%"></div></div></td>
       <td class="num">${g.emps.size}</td><td class="num">${g.prices.length ? fmt(Math.min(...g.prices))+(Math.min(...g.prices)!==Math.max(...g.prices)?"–"+fmt(Math.max(...g.prices)):"") : "—"}</td><td class="num">${dtLocal(g.last)}</td></tr>`).join("")}</tbody></table></div>` +
@@ -550,20 +552,19 @@ function openGroup(area){
 function topSection(title, sub, rows, mode){
   const group = (fn, keys) => { const m = new Map(); for(const r of rows){ const k = fn(r); const g = m.get(k)||{n:0,dv:0,dp:0}; g.n++; g.dv+=r.dv; g.dp+=r.dp; m.set(k,g); } return keys.filter(k=>m.has(k)).map(k=>[k,m.get(k)]); };
   const byRooms = group(r => roomKey(r.a.r), ["1","2","3","4+","?"]);
-  const byPrice = group(r => !r.ppm ? "?" : r.ppm < 1300 ? "до 1300" : r.ppm < 1500 ? "1300–1500" : r.ppm < 1700 ? "1500–1700" : "1700+", ["до 1300","1300–1500","1500–1700","1700+","?"]);
+  const byPrice = group(r => !r.ppm ? "?" : r.ppm < 1200 ? "до 1200" : r.ppm < 1400 ? "1200–1400" : r.ppm < 1600 ? "1400–1600" : "1600+", ["до 1200","1200–1400","1400–1600","1600+","?"]);
   const tbl = (t, g) => `<div><h3 style="margin:0 0 6px">${t}</h3><div class="tbl-wrap"><table><thead><tr><th>Группа</th><th class="num">Объявл.</th><th class="num">Откр./объявл.</th><th class="num">Просм./объявл.</th><th class="num">Конв.</th></tr></thead><tbody>
     ${g.map(([k,v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v.n)}</td><td class="num">${fmt1(v.dp/v.n)}</td><td class="num">${fmt1(v.dv/v.n)}</td><td class="num">${pct(v.dp,v.dv)}</td></tr>`).join("")}</tbody></table></div></div>`;
   const fastN = rows.filter(r => isFast(r.id)).length;
   return `<div class="panel sec"><h2>${title} · ${fmt(rows.length)}</h2><p class="note" style="margin-top:-4px">${sub} 🚀 быстрый старт: ${fastN}.</p>
-    <div class="grid2">${tbl("По комнатности", byRooms)}${tbl("По цене за м², $", byPrice)}</div>
+    <div class="grid2">${tbl("По комнатности", byRooms)}${tbl("По цене за м², €", byPrice)}</div>
     <h3 class="sec">ТОП-30 по открытиям номера</h3>${`<div class="cgrid">${rows.slice(0,30).map(r => adCard(r, mode)).join("")}</div>`}</div>`;
 }
-function viewWorks(A){
+function viewTop(A, mode){
   const all = adRows(A,true).filter(r => r.dv || r.dp).sort((a,b) => b.dp-a.dp || b.dv-a.dv);
-  const organic = all.filter(r => !r.raises && !r.promo);
-  const promoted = all.filter(r => r.raises || r.promo);
-  return topSection("Топ органика", "Без продвижения и без поднятий в выбранном периоде: что работает само по себе. Дата на карточке — размещение.", organic, "organic") +
-    topSection("Топ продвижение", "С VIP, выделением или поднятием в выбранном периоде. Дата на карточке — начало рекламы и последнее поднятие.", promoted, "promo");
+  return mode === "organic"
+    ? topSection("Топ органика", "Без продвижения и без поднятий в выбранном периоде: что работает само по себе. Дата на карточке — размещение.", all.filter(r => !r.raises && !r.promo), "organic")
+    : topSection("Топ продвижение", "С VIP, выделением или поднятием в выбранном периоде. Дата на карточке — начало рекламы и последнее поднятие.", all.filter(r => r.raises || r.promo), "promo");
 }
 
 // ---------- Продвижение (логика Kufar Promo Intelligence)
@@ -618,7 +619,7 @@ function pBadge(x){
 function pAdLine(x){
   const a = x.a;
   return `<div class="adnow ${x.status}"><a href="https://re.kufar.by/vi/${esc(x.ad_id)}" target="_blank" rel="noopener noreferrer">${esc(a.ad || a.t || "Объявление "+x.ad_id)}</a>
-    <div class="adnow-meta"><span>${a.a!=null?fmt1(a.a)+" м² · ":""}${a.pu?fmt(a.pu)+" $":""}</span>${pBadge(x)}</div></div>`;
+    <div class="adnow-meta"><span>${a.a!=null?fmt1(a.a)+" м² · ":""}${eur(a)?fmt(eur(a))+" €":""}</span>${pBadge(x)}</div></div>`;
 }
 function pTrend(P, days){
   const agents = [...new Set(P.effectDaily.map(x=>x.agent))].sort(pOrder);
@@ -727,10 +728,10 @@ function viewPromo(){
   if(PS.agent !== "Все") rows = rows.filter(r => r.agent === PS.agent);
   rows.sort((x,y)=>pOrder(x.agent,y.agent) || (x.a.ad||"").localeCompare(y.a.ad||"","ru"));
   h += `<div class="panel sec"><h2>Все объявления в продвижении · ${fmt(rows.length)}</h2><div class="row" style="margin-bottom:8px">${agentsList.map(a=>`<button class="chip" data-pagent="${esc(a)}" aria-pressed="${PS.agent===a}">${esc(a)}</button>`).join("")}</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Агент</th><th>Объявление</th><th>Реклама</th><th class="num">Дней</th><th class="num">Просмотры</th><th class="num">Открытия</th><th class="num">Цена $</th></tr></thead><tbody>${
+    <div class="tbl-wrap"><table><thead><tr><th>Агент</th><th>Объявление</th><th>Реклама</th><th class="num">Дней</th><th class="num">Просмотры</th><th class="num">Открытия</th><th class="num">Цена €</th></tr></thead><tbody>${
       rows.length ? rows.map(r => { const st = statusBy.get(r.id)||new Set(), e = effBy.get(r.id)||{v:0,p:0}, pk = pkMap.get(r.id);
         return `<tr><td>${esc(r.agent)}</td><td class="title"><a href="https://re.kufar.by/vi/${esc(r.id)}" target="_blank" rel="noopener noreferrer">${esc(r.a.ad||r.a.t||r.id)}</a><div class="muted" style="font-size:12px">${r.a.a!=null?fmt1(r.a.a)+" м² · ":""}${r.a.fl?esc(r.a.fl)+" эт.":""}</div></td>
-          <td>${st.has("vip")?"VIP":st.has("highlight")?"выделение":"—"}${pk?" · "+(pk.package==="turbo"?"Турбо":"Экспресс"):""}</td><td class="num">${daysBy.get(r.id)||0}</td><td class="num">${fmt(e.v)}</td><td class="num">${fmt(e.p)}</td><td class="num">${fmt(r.a.pu)}</td></tr>`; }).join("") : `<tr><td colspan="7" class="muted">Нет объявлений для выбранного фильтра</td></tr>`}</tbody></table></div>
+          <td>${st.has("vip")?"VIP":st.has("highlight")?"выделение":"—"}${pk?" · "+(pk.package==="turbo"?"Турбо":"Экспресс"):""}</td><td class="num">${daysBy.get(r.id)||0}</td><td class="num">${fmt(e.v)}</td><td class="num">${fmt(e.p)}</td><td class="num">${fmt(eur(r.a))}</td></tr>`; }).join("") : `<tr><td colspan="7" class="muted">Нет объявлений для выбранного фильтра</td></tr>`}</tbody></table></div>
     <p class="note">Поднятия — по изменению даты публикации между соседними обходами; часть поднятий может быть пропущена. Пакеты, начавшиеся до начала истории (22.09), не считаются купленными в известную дату. Учитываются только объявления в Минск-Мире. Фильтры сотрудников и комнатности на эту вкладку не действуют — только период.</p></div>`;
   return h;
 }
@@ -746,20 +747,20 @@ function openAd(id){
     <h2 style="margin-right:90px">${esc(a.t)}</h2>
     ${a.img?`<img src="${esc(a.img)}" alt="" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px">`:""}
     <p>${esc(a.ad||"")}<br>${esc(empName(empKey(a)))} · ${esc(CAT.companies[a.c]||"")}<br>
-    ${esc(a.r||"?")} комн. · ${fmt1(a.a)} м² · этаж ${esc(a.fl||"?")}/${esc(a.ft||"?")} · ${fmt(a.pu)} $ · ${a.pu&&a.a?fmt(a.pu/a.a)+" $/м²":""}<br>
+    ${esc(a.r||"?")} комн. · ${fmt1(a.a)} м² · этаж ${esc(a.fl||"?")}/${esc(a.ft||"?")} · ${fmt(eur(a))} € · ${eur(a)&&a.a?fmt(eur(a)/a.a)+" €/м²":""}<br>
     Размещено: ${dtLocal(a.lt0||a.lt)} · последнее поднятие: ${dtLocal(a.lt)} · всего просмотров: ${fmt(a.v)} · открытий номера: ${fmt(a.p)}<br>
     ${promoBadges(a)} ${a.act?"":"<b>Снято с публикации</b>"}</p>
     <p><a href="https://re.kufar.by/vi/${esc(id)}" target="_blank" rel="noopener noreferrer">Открыть на Kufar ↗</a></p>
     <h2>Просмотры по дням</h2>${barChart(series.map(x=>x[1][0]), lab, "bar-v")}
     <h2>Открытия номера по дням</h2>${barChart(series.map(x=>x[1][1]), lab, "bar-p")}
-    <h2>События</h2>${evs.length ? `<table><tbody>${evs.map(e=>`<tr><td>${dtLocal(e[0])}</td><td>${esc(EV_NAMES[e[2]]||e[2])}</td><td class="muted">${e[2]==="price"?fmt(e[3])+" → "+fmt(e[4])+" $":e[2]==="raise"?dtLocal(e[3])+" → "+dtLocal(e[4]):""}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Событий пока нет.</p>`}`;
+    <h2>События</h2>${evs.length ? `<table><tbody>${evs.map(e=>`<tr><td>${dtLocal(e[0])}</td><td>${esc(EV_NAMES[e[2]]||e[2])}</td><td class="muted">${e[2]==="price"?fmt(e[3]*EUR_RATE)+" → "+fmt(e[4]*EUR_RATE)+" €":e[2]==="raise"?dtLocal(e[3])+" → "+dtLocal(e[4]):""}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Событий пока нет.</p>`}`;
   $("#drawer").style.display = "block";
 }
 
 // ---------- отрисовка
 function render(){
   const A = aggregate();
-  const V = {overview:viewOverview, ads:viewAds, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, works:viewWorks}[S.tab];
+  const V = {overview:viewOverview, ads:viewAds, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, organic:A=>viewTop(A,"organic"), promoted:A=>viewTop(A,"promo")}[S.tab];
   $("#view").innerHTML = V(A);
   renderControls();
 }
@@ -849,6 +850,8 @@ function loadState(){ try{ const x = JSON.parse(localStorage.getItem("radar_f")|
     $("#view").innerHTML = `<div class="center">Не удалось загрузить данные. Проверьте ссылку или обновите страницу через минуту.</div>`;
     $("#status").textContent = "Нет данных"; $("#status").classList.add("warn"); return;
   }
+  const rs = Object.values(CAT.ads).filter(a => a.pe && a.pu).map(a => a.pe/a.pu).sort((x,y)=>x-y);
+  if(rs.length) EUR_RATE = rs[Math.floor(rs.length/2)];
   const age = (Date.now()/1000 - STATUS.last_run) / 3600;
   $("#status").textContent = "Обновлено " + dtLocal(STATUS.last_run);
   const h = new Date(Date.now()+TZ_OFF).getUTCHours();

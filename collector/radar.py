@@ -215,6 +215,7 @@ def parse_ad(ad: dict) -> dict:
         "ft": str(_v(ap, "re_number_floors") or ""),
         "pu": _num(ad.get("price_usd"), 100.0),
         "pb": _num(ad.get("price_byn"), 100.0),
+        "pe": next((_num(x.get("price"), 100.0) for x in (ad.get("calculator") or []) if isinstance(x, dict) and str(x.get("currency")) == "EUR"), None),
         "cur": "USD" if str(ad.get("currency") or "").upper() == "USD" else "BYN",
         "ad": str(_v(acc, "address") or "").strip() or _vl(ap, "address"),
         "lt": iso_to_ts(ad.get("list_time")),
@@ -563,7 +564,7 @@ def main() -> int:
                 ev(aid, "title", s["t"], r["t"])
             if s.get("img") and s["img"] != r["img"]:
                 ev(aid, "photo")
-        s.update({k: r[k] for k in ("t", "r", "a", "fl", "ft", "pu", "pb", "cur", "ad", "lt", "img", "ni", "hl", "pp", "rb",
+        s.update({k: r[k] for k in ("t", "r", "a", "fl", "ft", "pu", "pb", "pe", "cur", "ad", "lt", "img", "ni", "hl", "pp", "rb",
                                      "nw", "cond", "dist", "lat", "lon", "cn")})
         s["c"] = company
         if r["pp"]:
@@ -762,7 +763,7 @@ def main() -> int:
     size_state = kv.put_json("state", state)
     size_cube = kv.put_json("cube", cube)
 
-    catalog_fields = ("c", "pid", "cn", "t", "r", "a", "fl", "ft", "pu", "ad", "lt", "lt0", "fs", "ls", "act", "fv", "fh", "pb4",
+    catalog_fields = ("c", "pid", "cn", "t", "r", "a", "fl", "ft", "pu", "pe", "ad", "lt", "lt0", "fs", "ls", "act", "fv", "fh", "pb4",
                       "img", "ni", "hl", "pp", "rb", "nw", "v", "p")
     catalog = {
         "generated": run_ts,

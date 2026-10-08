@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   await p.goto(url, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1500);
   const out = { status: await p.textContent('#status') };
-  for (const t of ['overview', 'promo', 'ads', 'employees', 'hours', 'placed', 'works']) {
+  for (const t of ['overview', 'promo', 'ads', 'employees', 'hours', 'placed', 'organic', 'promoted']) {
     await p.click(`[data-tab="${t}"]`);
     await p.waitForTimeout(400);
     out[t] = await p.evaluate(() => ({
