@@ -105,6 +105,13 @@ a{color:var(--views)}
 .more{margin:10px auto;display:block}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:10px}
 .cgrid.one{grid-template-columns:1fr}
+.cgrid:not(.one){grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr))}
+.cgrid:not(.one) .acard{flex-direction:column;padding:0;overflow:hidden;gap:0}
+.cgrid:not(.one) .acard img,.cgrid:not(.one) .acard .noimg{width:100%;height:auto;aspect-ratio:4/3;border-radius:0}
+.cgrid:not(.one) .ab{padding:8px 10px 10px}
+.cgrid:not(.one) .at{font-size:12px}
+.cgrid:not(.one) .am,.cgrid:not(.one) .aw,.cgrid:not(.one) .ad8{font-size:11px}
+.cgrid:not(.one) .amet{font-size:11px}.cgrid:not(.one) .amet b{font-size:13px}
 .acard{display:flex;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--surface);cursor:pointer;min-width:0}
 .acard:hover{border-color:var(--accent)}
 .acard img,.acard .noimg{width:92px;height:72px;object-fit:cover;border-radius:8px;flex:0 0 auto;background:var(--surface-2)}
