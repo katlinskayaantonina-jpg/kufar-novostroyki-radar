@@ -103,6 +103,30 @@ a{color:var(--views)}
 .drawer .in{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:var(--surface);padding:18px;overflow:auto}
 .center{padding:40px;text-align:center;color:var(--ink-2)}
 .more{margin:10px auto;display:block}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:10px}
+.cgrid.one{grid-template-columns:1fr}
+.acard{display:flex;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--surface);cursor:pointer;min-width:0}
+.acard:hover{border-color:var(--accent)}
+.acard img,.acard .noimg{width:92px;height:72px;object-fit:cover;border-radius:8px;flex:0 0 auto;background:var(--surface-2)}
+.ab{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.at{font-weight:600;font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.am{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ad8{font-size:12px;color:var(--ink-3)}
+.aw{font-size:12px;color:var(--ink-2)}
+.amet{display:flex;gap:10px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}.amet b{color:var(--ink);font-size:14px}
+.badge.fast{background:#fff1d6;color:#8a5a00;border-color:transparent}
+:root[data-theme="dark"] .badge.fast{background:#3a2c14;color:#e3a54a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .badge.fast{background:#3a2c14;color:#e3a54a}}
+td.bestcell{background:var(--accent-soft);font-weight:700}
+tr.toprow td:first-child{font-weight:700}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:10px}
+.grid4 h3{margin:0 0 4px;font-size:14px}
+.chart .ghost{fill:none;stroke:var(--ink-3);stroke-width:1.2;stroke-dasharray:4 3}
+.chart .gl{fill:var(--ink-3)}
+.track{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden}.track div{height:100%;background:var(--views);border-radius:999px}
+.cntbtn{border:1px solid var(--line);background:var(--accent-soft);border-radius:8px;padding:2px 10px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums}
+select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px}
+
 .pgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .pgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .pgrid3.tiny{margin-top:10px;font-size:12px;text-align:center}
@@ -177,10 +201,10 @@ const TZ_OFF = 3 * 3600 * 1000; // Минск, UTC+3
 const NIGHT = 24, SPREAD = 25;
 const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const EV_NAMES = {new:"Новое", gone:"Снято", back:"Вернулось", raise:"Поднятие", price:"Цена", promo_hl:"Выделение", promo_pp:"Закреп вверху", promo_rb:"Ленточка", title:"Заголовок", photo:"Обложка"};
-const TABS = [["overview","Обзор"],["promo","Продвижение"],["ads","Объявления за период"],["leaders","Лидеры"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["works","Что работает"]];
+const TABS = [["overview","Обзор"],["promo","Продвижение"],["ads","Объявления за период"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["works","Что работает"]];
 
 let CAT = null, CUBE = null, STATUS = null;
-const S = { period:"7", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"overview", sort:{}, limit:150 };
+const S = { period:"7", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"overview", sort:{}, limit:60 };
 
 const $ = s => document.querySelector(s);
 const fmt = n => n == null ? "—" : Math.round(n).toLocaleString("ru-RU");
@@ -278,15 +302,17 @@ function aggregate(){
 // ---------- графики (SVG)
 function barChart(values, labels, cls, opts={}){
   const W = opts.w || (innerWidth < 640 ? 360 : 560), H = opts.h || (innerWidth < 640 ? 200 : 190), pl = 44, pb = 22, pt = 8;
-  const max = Math.max(1, ...values);
+  const ghost = opts.ghost || (() => false);
+  const max = Math.max(1, ...values.filter((v,i) => !ghost(i)));
   const n = values.length, bw = (W-pl-6)/n, gap = Math.min(4, bw*0.25);
   const nice = niceMax(max), ticks = [0, nice/2, nice];
   let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.title||"")}">`;
   for(const t of ticks){ const y = pt + (H-pt-pb)*(1-t/nice); s += `<line class="grid" x1="${pl}" x2="${W}" y1="${y}" y2="${y}"/><text x="${pl-6}" y="${y+4}" text-anchor="end">${fmtS(t)}</text>`; }
   values.forEach((v,i) => {
-    const h = (H-pt-pb)*v/nice, x = pl + i*bw + gap/2, y = H-pb-h, w = Math.max(1,bw-gap);
+    const h = (H-pt-pb)*Math.min(v, nice)/nice, x = pl + i*bw + gap/2, y = H-pb-h, w = Math.max(1,bw-gap);
     const c = (opts.special && opts.special(i)) ? "bar-x" : cls;
-    if(v > 0) s += `<path class="${c}" d="${roundTop(x,y,w,h)}" data-tip="${esc(labels[i])}: ${fmt(v)}"/>`;
+    if(ghost(i)){ if(v > 0) s += `<rect class="ghost" x="${x+1}" y="${y+1}" width="${w-2}" height="${Math.max(0,h-1)}" rx="3" data-tip="${esc(labels[i])}: ${fmt(v)}"/><text x="${x+w/2}" y="${Math.max(pt+9,y-3)}" text-anchor="middle" class="gl">${fmtS(v)}</text>`; }
+    else if(v > 0) s += `<path class="${c}" d="${roundTop(x,y,w,h)}" data-tip="${esc(labels[i])}: ${fmt(v)}"/>`;
     s += `<rect x="${pl+i*bw}" y="${pt}" width="${bw}" height="${H-pt-pb}" fill="transparent" data-tip="${esc(labels[i])}: ${fmt(v)}"/>`;
     const every = Math.ceil(n/(innerWidth < 640 ? 9 : 14));
     if(i % every === 0) s += `<text x="${x+w/2}" y="${H-6}" text-anchor="middle">${esc(opts.short ? opts.short(i) : labels[i])}</text>`;
@@ -335,19 +361,6 @@ function viewOverview(A){
   <p class="note">Данные собираются каждый час с 7:00 до 23:00 по Минску. Прирост за ночь виден утром отдельной строкой во вкладке «По часам».</p>`;
 }
 
-function adRows(A, onlyWithActivity){
-  const ads = CAT.ads, rows = [];
-  const ids = onlyWithActivity ? [...A.per.keys()] : Object.keys(ads).filter(id => adOk(id, ads[id]) && (ads[id].act || A.per.has(id)));
-  for(const id of ids){
-    const a = ads[id]; if(!a || !adOk(id,a)) continue;
-    const x = A.per.get(id) || {dv:0,dp:0,ev:[]};
-    const raises = x.ev.filter(e => e[2]==="raise").length;
-    const promo = x.ev.some(e => e[2].startsWith("promo_") && e[4]) || a.hl || a.pp || a.rb;
-    rows.push({id, a, dv:x.dv, dp:x.dp, conv: x.dv ? x.dp/x.dv : 0, raises, promo,
-      emp: empName(empKey(a)), ppm: a.pu && a.a ? a.pu/a.a : null, placed: a.lt0 || a.lt || a.fs});
-  }
-  return rows;
-}
 function sortRows(rows, tab, def){
   const st = S.sort[tab] || def;
   const k = st.key, dir = st.dir;
@@ -358,82 +371,199 @@ function th(tab, key, label, num){
   const st = S.sort[tab]; const mark = st && st.key === key ? (st.dir > 0 ? " ▲" : " ▼") : "";
   return `<th class="${num?"num":""}" data-sort="${tab}:${key}">${label}${mark}</th>`;
 }
+
+// ---------- карточки объявлений
+function adRows(A, onlyWithActivity){
+  const ads = CAT.ads, rows = [], days = new Set(A.days);
+  const ids = onlyWithActivity ? [...A.per.keys()] : Object.keys(ads).filter(id => adOk(id, ads[id]) && (ads[id].act || A.per.has(id)));
+  for(const id of ids){
+    const a = ads[id]; if(!a || !adOk(id,a)) continue;
+    const x = A.per.get(id) || {dv:0,dp:0,ev:[]};
+    const raises = x.ev.filter(e => e[2]==="raise").length;
+    let promoDays = 0; for(const d of days){ const D = CUBE.days[d]; if(D && D.pr && D.pr[id]) promoDays++; }
+    const promoEv = x.ev.some(e => e[2].startsWith("promo_") && e[4]);
+    const placed = a.lt0 || a.lt || a.fs;
+    rows.push({id, a, dv:x.dv, dp:x.dp, conv: x.dv ? x.dp/x.dv : 0, raises, promoDays, promo: promoDays>0 || promoEv,
+      emp: empName(empKey(a)), ppm: a.pu && a.a ? a.pu/a.a : null, placed,
+      lastRaise: a.lt && placed && a.lt - placed > 600 ? a.lt : null, area:a.a||0, price:a.pu||0});
+  }
+  return rows;
+}
+let FAST = null;
+function fastStart(){
+  if(FAST) return FAST;
+  const first = new Map(), dps = [], dvs = [], keys = Object.keys(CUBE.days).sort(), first0 = keys[0];
+  for(const [id,a] of Object.entries(CAT.ads)){
+    const t = a.lt0 || a.fs; if(!t) continue; const d0 = dayOfTs(t); if(!first0 || d0 <= first0) continue;   // размещено до начала истории — первых суток не видно
+    const d1 = addDays(d0,1); let v = 0, p = 0;
+    for(const d of [d0,d1]){ const x = CUBE.days[d] && CUBE.days[d].a[id]; if(x){ v += x[0]; p += x[1]; } }
+    first.set(id,[v,p]); dvs.push(v); dps.push(p);
+  }
+  const q = (arr, k) => { if(!arr.length) return Infinity; const s = [...arr].sort((a,b)=>a-b); return s[Math.min(s.length-1, Math.floor(s.length*k))]; };
+  FAST = {first, dpT: Math.max(3, q(dps, .85)), dvT: Math.max(40, q(dvs, .9))};
+  return FAST;
+}
+function isFast(id){ const F = fastStart(), x = F.first.get(id); return x && (x[1] >= F.dpT || x[0] >= F.dvT) ? x : null; }
 function promoBadges(a){
   let s = "";
+  if(a.pp) s += `<span class="badge on">VIP</span>`;
   if(a.hl) s += `<span class="badge on">выделение</span>`;
-  if(a.pp) s += `<span class="badge on">закреп</span>`;
   if(a.rb) s += `<span class="badge on">ленточка</span>`;
-  return s || `<span class="muted">—</span>`;
-}
-function adTable(rows, tab){
-  const shown = rows.slice(0, S.limit);
-  let s = `<div class="tbl-wrap"><table><thead><tr><th></th><th>Объявление</th>${th(tab,"emp","Сотрудник")}${th(tab,"r","Комн.",1)}
-    ${th(tab,"area","м²",1)}${th(tab,"price","Цена $",1)}${th(tab,"ppm","$/м²",1)}${th(tab,"dv","+Просмотры",1)}${th(tab,"dp","+Откр. номера",1)}
-    ${th(tab,"conv","Конверсия",1)}${th(tab,"raises","Поднятий",1)}<th>Продвижение сейчас</th>${th(tab,"placed","Размещено",1)}</tr></thead><tbody>`;
-  for(const r of shown){
-    const a = r.a;
-    s += `<tr class="clickable" data-ad="${r.id}"><td>${a.img?`<img class="thumb" loading="lazy" src="${esc(a.img)}" alt="">`:""}</td>
-      <td class="title">${esc(a.t)}<div class="muted" style="font-size:12px">${esc(a.ad||"")}${a.act?"":" · снято"}</div></td>
-      <td>${esc(r.emp)}</td><td class="num">${esc(a.r||"")}</td><td class="num">${fmt1(a.a)}</td><td class="num">${fmt(a.pu)}</td><td class="num">${fmt(r.ppm)}</td>
-      <td class="num">${fmt(r.dv)}</td><td class="num">${fmt(r.dp)}</td><td class="num">${r.dv?pct(r.dp,r.dv):"—"}</td><td class="num">${r.raises||""}</td>
-      <td>${promoBadges(a)}</td><td class="num">${dtLocal(r.placed)}</td></tr>`;
-  }
-  s += `</tbody></table></div>`;
-  if(rows.length > S.limit) s += `<button class="btn more" data-more="1">Показать ещё (${rows.length - S.limit})</button>`;
   return s;
 }
-function withSortKeys(rows){ rows.forEach(r => { r.r = parseInt(r.a.r,10)||0; r.area = r.a.a||0; r.price = r.a.pu||0; }); return rows; }
-
+function adCard(r, mode){
+  const a = r.a, f = isFast(r.id);
+  let dates = `Размещено ${dtLocal(r.placed)}`;
+  if(r.lastRaise) dates += ` · поднято ${dtLocal(r.lastRaise)}`;
+  if(mode === "promo" && (a.fv||a.fh)) dates = `Реклама с ${dtLocal(Math.min(a.fv||Infinity, a.fh||Infinity))} · ` + (r.lastRaise ? `поднято ${dtLocal(r.lastRaise)}` : `размещено ${dtLocal(r.placed)}`);
+  if(!a.act) dates += ` · <b>снято ${dtLocal(a.ls)}</b>`;
+  return `<div class="acard" data-ad="${r.id}" tabindex="0">
+    ${a.img ? `<img loading="lazy" src="${esc(a.img)}" alt="">` : `<div class="noimg"></div>`}
+    <div class="ab">
+      <div class="at">${esc(a.t)}</div>
+      <div class="am">${esc(a.ad||"")}</div>
+      <div class="aw">${esc(r.emp)} · ${esc(a.r||"?")}-комн. · ${fmt1(a.a)} м² · ${fmt(a.pu)} $</div>
+      <div class="ad8">${dates}</div>
+      <div class="amet"><span><b>${fmt(r.dv)}</b> просм.</span><span><b>${fmt(r.dp)}</b> откр. номера</span><span>${r.dv?pct(r.dp,r.dv):"—"}</span></div>
+      <div>${promoBadges(a)}${f ? `<span class="badge fast" title="Первые сутки после размещения: ${f[0]} просмотров, ${f[1]} открытий номера">🚀 быстрый старт</span>` : ""}${r.raises ? `<span class="badge">поднятий: ${r.raises}</span>` : ""}</div>
+    </div></div>`;
+}
+function cardGrid(rows, mode, limitKey){
+  const lim = S.limit;
+  return `<div class="cgrid">${rows.slice(0, lim).map(r => adCard(r, mode)).join("")}</div>` + (rows.length > lim ? `<button class="btn more" data-more="1">Показать ещё (${rows.length-lim})</button>` : "");
+}
+const AD_SORTS = [["dp","По открытиям номера"],["dv","По просмотрам"],["conv","По конверсии"],["placed","Новые сверху"],["lastRaise","Недавно поднятые"],["price","По цене"]];
+function sortSelect(tab, def){
+  const cur = (S.sort[tab]||{}).key || def;
+  return `<select data-sortsel="${tab}">${AD_SORTS.map(([k,l]) => `<option value="${k}" ${k===cur?"selected":""}>${l}</option>`).join("")}</select>`;
+}
 function viewAds(A){
-  const rows = sortRows(withSortKeys(adRows(A,false)), "ads", {key:"dp", dir:-1});
-  return `<h2>Объявления за период · ${fmt(rows.length)}</h2>${adTable(rows,"ads")}
-  <p class="note">В списке активные объявления и те, у которых были просмотры или события в периоде. Нажмите на строку, чтобы увидеть историю по дням.</p>`;
-}
-function viewLeaders(A){
-  const rows = sortRows(withSortKeys(adRows(A,true)).filter(r => r.dv || r.dp), "leaders", {key:"dp", dir:-1});
-  return `<h2>Лидеры по открытиям номера</h2>${adTable(rows,"leaders")}
-  <p class="note">Сортировка по любому столбцу — нажмите на заголовок.</p>`;
+  const rows = adRows(A,false), key = (S.sort.ads||{}).key || "dp";
+  rows.sort((x,y) => (y[key]??-Infinity) - (x[key]??-Infinity));
+  return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Объявления за период · ${fmt(rows.length)}</h2>${sortSelect("ads","dp")}</div>
+  ${cardGrid(rows)}
+  <p class="note">Активные объявления и те, у которых были просмотры или события в периоде. Цифры просмотров и открытий — прирост за выбранный период. 🚀 — быстрый старт: в первые сутки после размещения набрало больше, чем 85–90% других объявлений. Нажмите на карточку — история по дням.</p>`;
 }
 
+// ---------- сотрудники
 function viewEmployees(A){
   const ads = CAT.ads, m = new Map();
-  const get = k => { if(!m.has(k)) m.set(k,{k, name:empName(k), company:"", active:0, newc:0, dv:0, dp:0, raises:0, promo:0, ph:new Array(24).fill(0)}); return m.get(k); };
+  const get = k => { if(!m.has(k)) m.set(k,{k, name:empName(k), confirmed:k.startsWith("p:"), company:"", active:0, newc:0, dv:0, dp:0, raises:0, promo:0, ph:new Array(24).fill(0)}); return m.get(k); };
   for(const [id,a] of Object.entries(ads)){ if(!adOk(id,a)) continue; const e = get(empKey(a)); e.company = CAT.companies[a.c]||""; if(a.act) e.active++; }
   for(const [id,x] of A.per){ const a = ads[id]; const e = get(empKey(a)); e.dv += x.dv; e.dp += x.dp;
     for(const ev of x.ev){ if(ev[2]==="new") e.newc++; if(ev[2]==="raise") e.raises++; if(ev[2].startsWith("promo_") && ev[4]) e.promo++; } }
   for(const d of A.days){ const D = CUBE.days[d]; if(!D) continue; for(const [id,h,n] of D.ph){ const a = ads[id]; if(!adOk(id,a) || h>23) continue; get(empKey(a)).ph[h] += n; } }
-  const rows = [...m.values()].map(e => { const best = e.ph.indexOf(Math.max(...e.ph)); return {...e, perAd: e.active ? e.dp/e.active : 0, conv: e.dv ? e.dp/e.dv : 0, best: Math.max(...e.ph) ? best : -1}; });
-  sortRows(rows, "employees", {key:"dp", dir:-1});
-  let s = `<h2>Результаты сотрудников</h2><div class="tbl-wrap"><table><thead><tr>${th("employees","name","Сотрудник")}${th("employees","company","Компания")}
-    ${th("employees","active","Активных",1)}${th("employees","newc","Новых",1)}${th("employees","dv","+Просмотры",1)}${th("employees","dp","+Откр. номера",1)}
-    ${th("employees","perAd","Откр. на объявление",1)}${th("employees","conv","Конверсия",1)}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead><tbody>`;
-  for(const e of rows){ s += `<tr class="clickable" data-emp="${esc(e.k)}"><td>${esc(e.name)}</td><td>${esc(e.company)}</td><td class="num">${fmt(e.active)}</td><td class="num">${fmt(e.newc)}</td>
-    <td class="num">${fmt(e.dv)}</td><td class="num">${fmt(e.dp)}</td><td class="num">${fmt1(e.perAd)}</td><td class="num">${e.dv?pct(e.dp,e.dv):"—"}</td>
-    <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`; }
-  return s + `</tbody></table></div><p class="note">Нажмите на сотрудника, чтобы отфильтровать дашборд по нему. «Не подтверждён» — имя из объявления, профиль продавца ещё уточняется.</p>`;
+  const all = [...m.values()].map(e => { const mx = Math.max(...e.ph); return {...e, perAd: e.active ? e.dp/e.active : 0, conv: e.dv ? e.dp/e.dv : 0, best: mx ? e.ph.indexOf(mx) : -1}; });
+  const conf = all.filter(e => e.confirmed), unconf = all.filter(e => !e.confirmed);
+  sortRows(conf, "employees", {key:"dp", dir:-1}); sortRows(unconf, "employees", {key:"dp", dir:-1});
+  // кто лучше: места по открытиям номера и звёзды за отдачу с одного объявления
+  const byDp = [...conf].sort((a,b)=>b.dp-a.dp), medal = new Map(byDp.slice(0,3).filter(e=>e.dp>0).map((e,i)=>[e.k,["🥇","🥈","🥉"][i]]));
+  const byEff = conf.filter(e => e.active >= 10).sort((a,b)=>b.perAd-a.perAd), star = new Set(byEff.slice(0,3).filter(e=>e.perAd>0).map(e=>e.k));
+  const cols = ["active","newc","dv","dp","perAd","conv"], best = {};
+  for(const c of cols) best[c] = Math.max(...conf.map(e => e[c]||0));
+  const cell = (e,c,txt) => `<td class="num ${e.confirmed && e[c] && e[c]===best[c] ? "bestcell" : ""}">${txt}</td>`;
+  const tr = e => `<tr class="clickable ${medal.has(e.k)?"toprow":""}" data-emp="${esc(e.k)}"><td>${medal.get(e.k)||""} ${esc(e.name)}${star.has(e.k)?' <span class="badge fast" title="Лучшая отдача: больше всего открытий номера на одно активное объявление">⭐ отдача</span>':""}</td><td>${esc(e.company)}</td>
+    ${cell(e,"active",fmt(e.active))}${cell(e,"newc",fmt(e.newc))}${cell(e,"dv",fmt(e.dv))}${cell(e,"dp",fmt(e.dp))}${cell(e,"perAd",fmt1(e.perAd))}${cell(e,"conv",e.dv?pct(e.dp,e.dv):"—")}
+    <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`;
+  const head = `<thead><tr>${th("employees","name","Сотрудник")}${th("employees","company","Компания")}${th("employees","active","Активных",1)}${th("employees","newc","Новых",1)}${th("employees","dv","+Просмотры",1)}${th("employees","dp","+Откр. номера",1)}
+    ${th("employees","perAd","Откр. на объявление",1)}${th("employees","conv","Конверсия",1)}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead>`;
+  return `<h2>Результаты сотрудников</h2>
+  <div class="legend"><span>🥇🥈🥉 — больше всего открытий номера за период</span><span>⭐ — лучшая отдача: открытий на одно активное объявление (от 10 объявлений)</span><span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></span>лучшее значение в столбце</span></div>
+  <div class="tbl-wrap"><table>${head}<tbody>${conf.map(tr).join("")}</tbody></table></div>
+  ${unconf.length ? `<details class="sec"><summary class="muted" style="cursor:pointer">Не подтверждены (${unconf.length}) — имя взято из объявления, профиль продавца ещё уточняется</summary><div class="tbl-wrap sec"><table>${head}<tbody>${unconf.map(tr).join("")}</tbody></table></div></details>` : ""}
+  <p class="note">Нажмите на сотрудника, чтобы посмотреть его объявления.</p>`;
 }
 
+// ---------- по часам: ночной столбец не растягивает шкалу
 function viewHours(A){
   const hrs = [...Array(17).keys()].map(i => i+7);          // 7..23
   const labels = ["Ночь (23:00–7:00)", ...hrs.map(h => `${h}:00–${h+1}:00`)];
   const short = i => i === 0 ? "ночь" : hrs[i-1];
-  const night = arr => arr[NIGHT] + arr.slice(0,7).reduce((a,b)=>a+b,0);   // в старых данных были и ночные часы
+  const night = arr => arr[NIGHT] + arr.slice(0,7).reduce((a,b)=>a+b,0);
   const ph = [night(A.phHour), ...hrs.map(h => A.phHour[h])];
   const vh = [night(A.vHour), ...hrs.map(h => A.vHour[h])];
   const total = ph.reduce((a,b)=>a+b,0) + A.phHour[SPREAD];
-  const best = hrs[hrs.map(h=>A.phHour[h]).indexOf(Math.max(...hrs.map(h=>A.phHour[h])))];
+  const mx = Math.max(...hrs.map(h=>A.phHour[h])), best = hrs[hrs.map(h=>A.phHour[h]).indexOf(mx)];
   return `<div class="kpis">
-    ${kpi(Math.max(...hrs.map(h=>A.phHour[h])) ? best+":00–"+(best+1)+":00" : "—","Час, когда чаще всего открывают номер","по выбранным фильтрам")}
+    ${kpi(mx ? best+":00–"+(best+1)+":00" : "—","Час, когда чаще всего открывают номер","по выбранным фильтрам")}
     ${kpi(fmt(ph[0]),"Открытий номера за ночь","между 23:00 и 7:00, видны утром")}
     ${kpi(fmt(A.phHour[SPREAD]),"Открытий, час не определён",`${pct(A.phHour[SPREAD], total)} от всех — объявления, которые замеряются раз в несколько часов`)}
   </div>
   <div class="grid2">
-    <div class="panel"><h2>Открытия номера по часу</h2>${barChart(ph, labels, "bar-p", {title:"Открытия номера по часам", short, special:i=>i===0})}</div>
-    <div class="panel"><h2>Прирост просмотров по часу</h2>${barChart(vh, labels, "bar-v", {title:"Просмотры по часам", short, special:i=>i===0})}</div>
+    <div class="panel"><h2>Открытия номера по часу</h2>${barChart(ph, labels, "bar-p", {title:"Открытия номера по часам", short, ghost:i=>i===0})}</div>
+    <div class="panel"><h2>Прирост просмотров по часу</h2>${barChart(vh, labels, "bar-v", {title:"Просмотры по часам", short, ghost:i=>i===0})}</div>
   </div>
   <div class="panel sec"><h2>Открытия номера: день недели × час</h2>${heatmap(A.heat,"Открытия номера по дням недели и часам")}</div>
   <div class="panel sec"><h2>Просмотры: день недели × час</h2>${heatmap(A.heatV,"Просмотры по дням недели и часам")}</div>
-  <p class="note">Час — середина интервала между двумя замерами (замер каждый час с 7 до 23). Серый столбец — всё, что накопилось за ночь. Просмотры по часам учитывают фильтры компании, сотрудника и комнатности; поиск и «только новостройки» на них не действуют.</p>`;
+  <p class="note">Час — середина интервала между двумя замерами (замер каждый час с 7 до 23). Пунктирный столбец «ночь» — всё, что накопилось с 23:00 до 7:00; он не влияет на масштаб, его число подписано сверху. Просмотры по часам учитывают фильтры компании, сотрудника и комнатности; поиск и «только новостройки» на них не действуют.</p>`;
+}
+
+// ---------- что размещают
+let PLACED_GROUPS = new Map();
+function viewPlaced(A){
+  const ads = CAT.ads;
+  const news = A.events.filter(e => e[2]==="new").map(e => [e, ads[e[1]]]).filter(x => x[1]);
+  const byRooms = new Map(), byArea = new Map(), byWd = new Array(7).fill(0), byHour = new Array(24).fill(0);
+  const groups = new Map();
+  for(const [e,a] of news){
+    const rk = roomKey(a.r); byRooms.set(rk, (byRooms.get(rk)||0)+1);
+    const ak = a.a ? (a.a < 40 ? "до 40" : a.a < 55 ? "40–55" : a.a < 70 ? "55–70" : a.a < 90 ? "70–90" : "90+") : "?"; byArea.set(ak,(byArea.get(ak)||0)+1);
+    const t = a.lt0 || e[0]; byWd[(new Date(t*1000+TZ_OFF).getUTCDay()+6)%7]++; byHour[hourOfTs(t)]++;
+    const g = a.a ? (Math.round(a.a*10)/10).toFixed(1) : "?";
+    if(!groups.has(g)) groups.set(g,{area:g, ids:[], emps:new Set(), rooms:new Set(), last:0, prices:[]});
+    const G = groups.get(g); G.ids.push(e[1]); G.emps.add(empName(empKey(a))); G.rooms.add(a.r||"?"); G.last = Math.max(G.last, t); if(a.pu) G.prices.push(a.pu);
+  }
+  PLACED_GROUPS = groups;
+  const order = (m, keys) => keys.filter(k => m.has(k)).map(k => [k, m.get(k)]);
+  const rk = order(byRooms, ["1","2","3","4+","?"]), ak = order(byArea, ["до 40","40–55","55–70","70–90","90+","?"]);
+  const small = {w:360, h:150};
+  const gl = [...groups.values()].sort((a,b) => b.ids.length - a.ids.length || parseFloat(a.area)-parseFloat(b.area));
+  const maxN = Math.max(1, ...gl.map(g=>g.ids.length));
+  const tbl = `<div class="tbl-wrap"><table><thead><tr><th>Площадь, м²</th><th>Комн.</th><th class="num">Размещений</th><th style="min-width:120px"></th><th class="num">Сотрудников</th><th class="num">Цена $, от–до</th><th class="num">Последнее</th></tr></thead><tbody>${
+    gl.slice(0, S.limit).map(g => `<tr class="clickable" data-area="${esc(g.area)}"><td><b>${esc(g.area.replace(".",","))}</b></td><td>${esc([...g.rooms].join(", "))}</td>
+      <td class="num"><button class="cntbtn" data-area="${esc(g.area)}">${g.ids.length}</button></td><td><div class="track"><div style="width:${g.ids.length/maxN*100}%"></div></div></td>
+      <td class="num">${g.emps.size}</td><td class="num">${g.prices.length ? fmt(Math.min(...g.prices))+(Math.min(...g.prices)!==Math.max(...g.prices)?"–"+fmt(Math.max(...g.prices)):"") : "—"}</td><td class="num">${dtLocal(g.last)}</td></tr>`).join("")}</tbody></table></div>` +
+    (gl.length > S.limit ? `<button class="btn more" data-more="1">Показать ещё (${gl.length - S.limit})</button>` : "");
+  return `<div class="kpis">${kpi(fmt(news.length),"Новых объявлений","за выбранный период")}${kpi(fmt(groups.size),"Разных площадей","квартир с одинаковым метражом")}${kpi(gl[0]?gl[0].area.replace(".",",")+" м²":"—","Чаще всего размещали",gl[0]?gl[0].ids.length+" раз":"")}</div>
+  <div class="panel"><h2>Одинаковые квартиры по площади</h2><p class="note" style="margin-top:-4px">Сколько раз за период размещали квартиру каждой площади. Нажмите на число — откроются все эти объявления с фото: кто, когда и с каким результатом.</p>${tbl}</div>
+  <div class="grid4 sec">
+    <div class="panel"><h3>Комнатность</h3>${barChart(rk.map(x=>x[1]), rk.map(x=>x[0]+" комн."), "bar-v", {...small, short:i=>rk[i][0]})}</div>
+    <div class="panel"><h3>Площадь, м²</h3>${barChart(ak.map(x=>x[1]), ak.map(x=>x[0]+" м²"), "bar-v", {...small, short:i=>ak[i][0]})}</div>
+    <div class="panel"><h3>День недели</h3>${barChart(byWd, WD, "bar-v", small)}</div>
+    <div class="panel"><h3>Час размещения</h3>${barChart(byHour.slice(7), [...Array(17).keys()].map(h=>(h+7)+":00"), "bar-v", {...small, short:i=>i+7})}</div>
+  </div>`;
+}
+function openGroup(area){
+  const g = PLACED_GROUPS.get(area); if(!g) return;
+  const A = aggregate(), rows = adRows(A,false).filter(r => g.ids.includes(r.id));
+  const seen = new Set(rows.map(r=>r.id));
+  for(const id of g.ids){ if(!seen.has(id) && CAT.ads[id]){ const a = CAT.ads[id]; rows.push({id, a, dv:0, dp:0, conv:0, raises:0, emp:empName(empKey(a)), placed:a.lt0||a.lt||a.fs, lastRaise:null}); seen.add(id); } }
+  rows.sort((a,b) => (b.placed||0)-(a.placed||0));
+  const byEmp = new Map(); for(const r of rows) byEmp.set(r.emp,(byEmp.get(r.emp)||0)+1);
+  $("#drawerIn").innerHTML = `<button class="btn" id="closeDrawer" style="float:right">Закрыть</button><h2 style="margin-right:90px">${esc(area.replace(".",","))} м² — ${g.ids.length} размещений</h2>
+    <p class="muted">${[...byEmp].sort((a,b)=>b[1]-a[1]).map(([n,c])=>`${esc(n)}: ${c}`).join(" · ")}</p>
+    <div class="cgrid one">${rows.map(r => adCard(r)).join("")}</div>`;
+  $("#drawer").style.display = "block";
+}
+
+// ---------- что работает: органика и продвижение
+function topSection(title, sub, rows, mode){
+  const group = (fn, keys) => { const m = new Map(); for(const r of rows){ const k = fn(r); const g = m.get(k)||{n:0,dv:0,dp:0}; g.n++; g.dv+=r.dv; g.dp+=r.dp; m.set(k,g); } return keys.filter(k=>m.has(k)).map(k=>[k,m.get(k)]); };
+  const byRooms = group(r => roomKey(r.a.r), ["1","2","3","4+","?"]);
+  const byPrice = group(r => !r.ppm ? "?" : r.ppm < 1300 ? "до 1300" : r.ppm < 1500 ? "1300–1500" : r.ppm < 1700 ? "1500–1700" : "1700+", ["до 1300","1300–1500","1500–1700","1700+","?"]);
+  const tbl = (t, g) => `<div><h3 style="margin:0 0 6px">${t}</h3><div class="tbl-wrap"><table><thead><tr><th>Группа</th><th class="num">Объявл.</th><th class="num">Откр./объявл.</th><th class="num">Просм./объявл.</th><th class="num">Конв.</th></tr></thead><tbody>
+    ${g.map(([k,v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v.n)}</td><td class="num">${fmt1(v.dp/v.n)}</td><td class="num">${fmt1(v.dv/v.n)}</td><td class="num">${pct(v.dp,v.dv)}</td></tr>`).join("")}</tbody></table></div></div>`;
+  const fastN = rows.filter(r => isFast(r.id)).length;
+  return `<div class="panel sec"><h2>${title} · ${fmt(rows.length)}</h2><p class="note" style="margin-top:-4px">${sub} 🚀 быстрый старт: ${fastN}.</p>
+    <div class="grid2">${tbl("По комнатности", byRooms)}${tbl("По цене за м², $", byPrice)}</div>
+    <h3 class="sec">ТОП-30 по открытиям номера</h3>${`<div class="cgrid">${rows.slice(0,30).map(r => adCard(r, mode)).join("")}</div>`}</div>`;
+}
+function viewWorks(A){
+  const all = adRows(A,true).filter(r => r.dv || r.dp).sort((a,b) => b.dp-a.dp || b.dv-a.dv);
+  const organic = all.filter(r => !r.raises && !r.promo);
+  const promoted = all.filter(r => r.raises || r.promo);
+  return topSection("Топ органика", "Без продвижения и без поднятий в выбранном периоде: что работает само по себе. Дата на карточке — размещение.", organic, "organic") +
+    topSection("Топ продвижение", "С VIP, выделением или поднятием в выбранном периоде. Дата на карточке — начало рекламы и последнее поднятие.", promoted, "promo");
 }
 
 // ---------- Продвижение (логика Kufar Promo Intelligence)
@@ -605,42 +735,6 @@ function viewPromo(){
   return h;
 }
 
-function viewPlaced(A){
-  const ads = CAT.ads;
-  const news = A.events.filter(e => e[2]==="new").map(e => [e, ads[e[1]]]).filter(x => x[1]);
-  const byRooms = new Map(), byArea = new Map(), byWd = new Array(7).fill(0), byHour = new Array(24).fill(0), byEmp = new Map();
-  for(const [e,a] of news){
-    const rk = roomKey(a.r); byRooms.set(rk, (byRooms.get(rk)||0)+1);
-    const ak = a.a ? (a.a < 40 ? "до 40" : a.a < 55 ? "40–55" : a.a < 70 ? "55–70" : a.a < 90 ? "70–90" : "90+") : "?"; byArea.set(ak,(byArea.get(ak)||0)+1);
-    const t = a.lt0 || e[0]; byWd[(new Date(t*1000+TZ_OFF).getUTCDay()+6)%7]++; byHour[hourOfTs(t)]++;
-    const en = empName(empKey(a)); byEmp.set(en,(byEmp.get(en)||0)+1);
-  }
-  const order = (m, keys) => keys.filter(k => m.has(k)).map(k => [k, m.get(k)]);
-  const rk = order(byRooms, ["1","2","3","4+","?"]), ak = order(byArea, ["до 40","40–55","55–70","70–90","90+","?"]);
-  const emp = [...byEmp].sort((a,b)=>b[1]-a[1]).slice(0,15);
-  return `<div class="kpis">${kpi(fmt(news.length),"Новых объявлений","за выбранный период")}</div>
-  <div class="grid2">
-    <div class="panel"><h2>Комнатность новых</h2>${barChart(rk.map(x=>x[1]), rk.map(x=>x[0]+" комн."), "bar-v", {short:i=>rk[i][0]})}</div>
-    <div class="panel"><h2>Площадь новых, м²</h2>${barChart(ak.map(x=>x[1]), ak.map(x=>x[0]+" м²"), "bar-v", {short:i=>ak[i][0]})}</div>
-    <div class="panel"><h2>День недели размещения</h2>${barChart(byWd, WD, "bar-v")}</div>
-    <div class="panel"><h2>Час размещения</h2>${barChart(byHour, [...Array(24).keys()].map(h=>h+":00"), "bar-v", {short:i=>i})}</div>
-  </div>
-  <div class="panel sec"><h2>Кто размещал больше</h2>${barChart(emp.map(x=>x[1]), emp.map(x=>x[0]), "bar-v", {h:220, short:i=>emp[i][0].split(" ")[0]})}</div>`;
-}
-
-function viewWorks(A){
-  const rows = withSortKeys(adRows(A,true)).filter(r => !r.raises && !r.promo && (r.dv||r.dp));
-  sortRows(rows, "works", {key:"dp", dir:-1});
-  const group = (fn, keys) => { const m = new Map(); for(const r of rows){ const k = fn(r); const g = m.get(k)||{n:0,dv:0,dp:0}; g.n++; g.dv+=r.dv; g.dp+=r.dp; m.set(k,g); } return keys.filter(k=>m.has(k)).map(k=>[k,m.get(k)]); };
-  const byRooms = group(r => roomKey(r.a.r), ["1","2","3","4+","?"]);
-  const byPrice = group(r => !r.ppm ? "?" : r.ppm < 1300 ? "до 1300" : r.ppm < 1500 ? "1300–1500" : r.ppm < 1700 ? "1500–1700" : "1700+", ["до 1300","1300–1500","1500–1700","1700+","?"]);
-  const tbl = (title, g) => `<div class="panel"><h2>${title}</h2><div class="tbl-wrap"><table><thead><tr><th>Группа</th><th class="num">Объявлений</th><th class="num">Откр. на объявление</th><th class="num">Просм. на объявление</th><th class="num">Конверсия</th></tr></thead><tbody>
-    ${g.map(([k,v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v.n)}</td><td class="num">${fmt1(v.dp/v.n)}</td><td class="num">${fmt1(v.dv/v.n)}</td><td class="num">${pct(v.dp,v.dv)}</td></tr>`).join("")}</tbody></table></div></div>`;
-  return `<h2>Чистая органика</h2><p class="note" style="margin-top:-4px">Объявления без продвижения и без поднятий в выбранном периоде: что даёт результат само по себе.</p>
-  <div class="grid2 sec">${tbl("По комнатности", byRooms)}${tbl("По цене за м², $", byPrice)}</div>
-  <h2 class="sec">ТОП органики</h2>${adTable(rows,"works")}`;
-}
-
 // ---------- карточка объявления
 function openAd(id){
   const a = CAT.ads[id]; if(!a) return;
@@ -665,7 +759,7 @@ function openAd(id){
 // ---------- отрисовка
 function render(){
   const A = aggregate();
-  const V = {overview:viewOverview, ads:viewAds, leaders:viewLeaders, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, works:viewWorks}[S.tab];
+  const V = {overview:viewOverview, ads:viewAds, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, works:viewWorks}[S.tab];
   $("#view").innerHTML = V(A);
   renderControls();
 }
@@ -700,18 +794,20 @@ document.addEventListener("click", ev => {
     if(pt.dataset.pagent) PS.agent = pt.dataset.pagent;
     render(); return;
   }
+  const ga = ev.target.closest("[data-area]");
+  if(ga){ openGroup(ga.dataset.area); return; }
   const t = ev.target.closest("[data-period],[data-wd],[data-company],[data-room],[data-tab],[data-sort],[data-ad],[data-emp],[data-more],#reset,#empBtn,#empClear,#closeDrawer");
   if(!t){ if(!ev.target.closest(".emp-box")) $("#empList").hidden = true; if(ev.target.id==="drawer") $("#drawer").style.display="none"; return; }
   if(t.dataset.period){ S.period = t.dataset.period; if(S.period==="custom" && !S.from){ S.to = todayStr(); S.from = addDays(S.to,-13); $("#dFrom").value=S.from; $("#dTo").value=S.to; } }
   else if(t.dataset.wd){ const i = +t.dataset.wd; S.wd.has(i) ? S.wd.delete(i) : S.wd.add(i); }
   else if(t.dataset.company){ S.company = t.dataset.company; }
   else if(t.dataset.room){ const r = t.dataset.room; S.rooms.has(r) ? S.rooms.delete(r) : S.rooms.add(r); }
-  else if(t.dataset.tab){ S.tab = t.dataset.tab; S.limit = 150; }
+  else if(t.dataset.tab){ S.tab = t.dataset.tab; S.limit = 60; }
   else if(t.dataset.sort){ const [tab,key] = t.dataset.sort.split(":"); const cur = S.sort[tab]; S.sort[tab] = {key, dir: cur && cur.key===key ? -cur.dir : -1}; }
   else if(t.dataset.ad){ openAd(t.dataset.ad); return; }
   else if(t.dataset.emp){ S.emps = new Set([t.dataset.emp]); S.tab = "ads"; }
-  else if(t.dataset.more){ S.limit += 300; }
-  else if(t.id === "reset"){ Object.assign(S, {period:"7", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, limit:150}); $("#q").value=""; $("#newOnly").checked=true; }
+  else if(t.dataset.more){ S.limit += 60; }
+  else if(t.id === "reset"){ Object.assign(S, {period:"7", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, limit:60}); $("#q").value=""; $("#newOnly").checked=true; }
   else if(t.id === "empBtn"){ const L = $("#empList"); if(L.hidden){ renderEmpList(); L.hidden = false; } else L.hidden = true; return; }
   else if(t.id === "empClear"){ S.emps.clear(); renderEmpList(); }
   else if(t.id === "closeDrawer"){ $("#drawer").style.display = "none"; return; }
@@ -722,11 +818,12 @@ document.addEventListener("change", ev => {
   if(t.dataset && t.dataset.empK !== undefined){ t.checked ? S.emps.add(t.dataset.empK) : S.emps.delete(t.dataset.empK); render(); saveState(); return; }
   if(t.id==="dFrom"){ S.from = t.value; render(); }
   if(t.id==="dTo"){ S.to = t.value; render(); }
+  if(t.dataset && t.dataset.sortsel){ S.sort[t.dataset.sortsel] = {key:t.value, dir:-1}; S.limit = 60; render(); return; }
   if(t.id==="newOnly"){ S.newOnly = t.checked; render(); saveState(); }
 });
 let qTimer;
 document.addEventListener("input", ev => {
-  if(ev.target.id === "q"){ clearTimeout(qTimer); qTimer = setTimeout(() => { S.q = ev.target.value.trim(); S.limit = 150; render(); }, 200); }
+  if(ev.target.id === "q"){ clearTimeout(qTimer); qTimer = setTimeout(() => { S.q = ev.target.value.trim(); S.limit = 60; render(); }, 200); }
   if(ev.target.id === "empQ"){ const q = ev.target.value.toLowerCase(); document.querySelectorAll("#empItems label").forEach(l => l.style.display = l.dataset.name.includes(q) ? "" : "none"); }
 });
 document.addEventListener("keydown", ev => { if(ev.key === "Escape"){ $("#drawer").style.display = "none"; $("#empList").hidden = true; } });
@@ -743,6 +840,7 @@ function loadState(){ try{ const x = JSON.parse(localStorage.getItem("radar_f")|
 // ---------- старт
 (async function(){
   loadState();
+  if(!TABS.some(t => t[0] === S.tab)) S.tab = "overview";
   if(innerWidth < 640) $("#fbox").open = false;
   $("#newOnly").checked = S.newOnly;
   try{
