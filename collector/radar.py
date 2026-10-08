@@ -334,6 +334,51 @@ def merge_import(state: dict, cube: dict) -> str:
     return f"days={replaced} ads_added={added}"
 
 
+def rebuild_day(kv, cube: dict, dkey: str, ads_state: dict) -> str:
+    """Пересчёт приростов за день по сырым замерам (однократное исправление)."""
+    rows = kv.get_json(f"raw:{dkey}", default=[]) or []
+    prev_day = (datetime.fromisoformat(dkey) - timedelta(days=1)).strftime("%Y-%m-%d")
+    before = kv.get_json(f"raw:{prev_day}", default=[]) or []
+    last: dict = {}
+    for aid, ts, v, p in sorted(before, key=lambda r: r[1]):
+        last[aid] = (ts, v, p)
+    known_before = set(last)
+    max_before = max([0] + [int(a) for a in known_before])
+    d = cube["days"].setdefault(dkey, empty_day())
+    a_tot: dict = {}
+    vh: Counter = Counter()
+    ph: Counter = Counter()
+    cov: Counter = Counter()
+    for aid, ts, v, p in sorted(rows, key=lambda r: r[1]):
+        s = ads_state.get(aid, {})
+        pr = last.get(aid)
+        if pr is None and int(aid) > max_before and s.get("lt0") and s.get("lt0") == s.get("lt") and ts - s["lt0"] < 3 * 3600:
+            pr = (s["lt0"], 0, 0)
+        last[aid] = (ts, v, p)
+        if pr is None:
+            continue
+        dv, dp = max(0, v - pr[1]), max(0, p - pr[2])
+        dk, h = bucket_for(pr[0], ts)
+        if dk != dkey:
+            continue
+        cov[str(h)] += 1
+        if dv or dp:
+            x = a_tot.setdefault(aid, [0, 0])
+            x[0] += dv
+            x[1] += dp
+            if dv:
+                vh[(s.get("pid") or "", s.get("r") or "", h)] += dv
+            if dp:
+                ph[(aid, h)] += dp
+    old = (sum(x[0] for x in d["a"].values()), sum(x[1] for x in d["a"].values()))
+    d["a"] = a_tot
+    d["vh"] = [[k[0], k[1], k[2], n] for k, n in vh.items()]
+    d["ph"] = [[k[0], k[1], n] for k, n in ph.items()]
+    d["cov"] = dict(cov)
+    new = (sum(x[0] for x in a_tot.values()), sum(x[1] for x in a_tot.values()))
+    return f"{dkey}: views {old[0]}->{new[0]}, phones {old[1]}->{new[1]}"
+
+
 def merge_promo_history(state: dict, cube: dict) -> str:
     """Однократно: история рекламы (VIP/выделение) из Kufar Promo Intelligence, зашифрована RADAR_KEY."""
     path = ROOT / "import" / "promo_history.enc"
@@ -387,6 +432,7 @@ def main() -> int:
     state = kv.get_json("state", default=None) or {"v": 1, "ads": {}, "profiles": {}, "last_run": 0,
                                                     "last_full_feeds": 0, "tries": {}}
     bootstrap = not state["ads"]
+    prev_max_id = int(state.get("max_id") or max([0] + [int(a) for a in state["ads"] if a.isdigit()]))
     ads_state: dict = state["ads"]
     profiles: dict = state["profiles"]
     for pid, p in (cfg.get("profiles") or {}).items():
@@ -603,6 +649,9 @@ def main() -> int:
     STATS["measured_ok"] = sum(1 for r in results if r[1] is not None)
 
     cube = kv.get_json("cube", default=None) or {"days": {}}
+    if not state.get("fix_baseline_0810"):
+        STATS["rebuilt_day"] = rebuild_day(kv, cube, "2026-10-08", ads_state)  # type: ignore[assignment]
+        state["fix_baseline_0810"] = 1
     if not state.get("fix_price_0810"):
         d0 = cube["days"].get("2026-10-08")
         if d0:
@@ -630,8 +679,10 @@ def main() -> int:
         s = ads_state[aid]
         raw_rows[day_key(ts)].append([aid, ts, v, p])
         prev_v, prev_p, prev_m = s.get("v"), s.get("p"), s.get("m") or 0
-        if prev_m == 0 and not bootstrap and s.get("fs") == run_ts and s.get("lt") and ts - s["lt"] < 3 * 3600:
-            # совсем новое объявление: считаем от нуля с момента размещения
+        if (prev_m == 0 and not bootstrap and s.get("fs") == run_ts and s.get("lt") and ts - s["lt"] < 3 * 3600
+                and int(aid) > prev_max_id and s.get("lt0") == s.get("lt")):
+            # действительно новое объявление (номер больше всех, что мы видели раньше):
+            # считаем от нуля с момента размещения. Старые объявления, впервые попавшие в радар, так не считаем.
             prev_v, prev_p, prev_m = 0, 0, s["lt"]
         if prev_m and prev_v is not None:
             dv = v - prev_v
@@ -706,6 +757,7 @@ def main() -> int:
         tries.pop(aid, None)
 
     state["last_run"] = run_ts
+    state["max_id"] = max([prev_max_id] + [int(a) for a in ads_state if a.isdigit()])
     state["polygon"] = polys[0] if polys else None
     size_state = kv.put_json("state", state)
     size_cube = kv.put_json("cube", cube)

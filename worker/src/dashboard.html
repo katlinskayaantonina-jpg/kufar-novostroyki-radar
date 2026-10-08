@@ -453,25 +453,25 @@ function viewEmployees(A){
   for(const [id,x] of A.per){ const a = ads[id]; const e = get(empKey(a)); e.dv += x.dv; e.dp += x.dp;
     for(const ev of x.ev){ if(ev[2]==="new") e.newc++; if(ev[2]==="raise") e.raises++; if(ev[2].startsWith("promo_") && ev[4]) e.promo++; } }
   for(const d of A.days){ const D = CUBE.days[d]; if(!D) continue; for(const [id,h,n] of D.ph){ const a = ads[id]; if(!adOk(id,a) || h>23) continue; get(empKey(a)).ph[h] += n; } }
-  const all = [...m.values()].map(e => { const mx = Math.max(...e.ph); return {...e, perAd: e.active ? e.dp/e.active : 0, conv: e.dv ? e.dp/e.dv : 0, best: mx ? e.ph.indexOf(mx) : -1}; });
+  const all = [...m.values()].map(e => { const mx = Math.max(...e.ph); return {...e, perAd: e.active ? e.dp/e.active : 0, vPerAd: e.active ? e.dv/e.active : 0, conv: e.dv ? e.dp/e.dv : 0, best: mx ? e.ph.indexOf(mx) : -1}; });
   const conf = all.filter(e => e.confirmed), unconf = all.filter(e => !e.confirmed);
   sortRows(conf, "employees", {key:"dp", dir:-1}); sortRows(unconf, "employees", {key:"dp", dir:-1});
   // кто лучше: места по открытиям номера и звёзды за отдачу с одного объявления
   const byDp = [...conf].sort((a,b)=>b.dp-a.dp), medal = new Map(byDp.slice(0,3).filter(e=>e.dp>0).map((e,i)=>[e.k,["🥇","🥈","🥉"][i]]));
   const byEff = conf.filter(e => e.active >= 10).sort((a,b)=>b.perAd-a.perAd), star = new Set(byEff.slice(0,3).filter(e=>e.perAd>0).map(e=>e.k));
-  const cols = ["active","newc","dv","dp","perAd","conv"], best = {};
+  const cols = ["active","newc","dv","dp","vPerAd","perAd","conv"], best = {};
   for(const c of cols) best[c] = Math.max(...conf.map(e => e[c]||0));
   const cell = (e,c,txt) => `<td class="num ${e.confirmed && e[c] && e[c]===best[c] ? "bestcell" : ""}">${txt}</td>`;
   const tr = e => `<tr class="clickable ${medal.has(e.k)?"toprow":""}" data-emp="${esc(e.k)}"><td>${medal.get(e.k)||""} ${esc(e.name)}${star.has(e.k)?' <span class="badge fast" title="Лучшая отдача: больше всего открытий номера на одно активное объявление">⭐ отдача</span>':""}</td><td>${esc(e.company)}</td>
-    ${cell(e,"active",fmt(e.active))}${cell(e,"newc",fmt(e.newc))}${cell(e,"dv",fmt(e.dv))}${cell(e,"dp",fmt(e.dp))}${cell(e,"perAd",fmt1(e.perAd))}${cell(e,"conv",e.dv?pct(e.dp,e.dv):"—")}
+    ${cell(e,"active",fmt(e.active))}${cell(e,"newc",fmt(e.newc))}${cell(e,"dv",fmt(e.dv))}${cell(e,"dp",fmt(e.dp))}${cell(e,"vPerAd",fmt1(e.vPerAd))}${cell(e,"perAd",fmt1(e.perAd))}${cell(e,"conv",e.dv?pct(e.dp,e.dv):"—")}
     <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`;
-  const head = `<thead><tr>${th("employees","name","Сотрудник")}${th("employees","company","Компания")}${th("employees","active","Активных",1)}${th("employees","newc","Новых",1)}${th("employees","dv","+Просмотры",1)}${th("employees","dp","+Откр. номера",1)}
-    ${th("employees","perAd","Откр. на объявление",1)}${th("employees","conv","Конверсия",1)}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead>`;
+  const head = `<thead><tr>${th("employees","name","Сотрудник")}${th("employees","company","Компания")}${th("employees","active","Активных",1)}${th("employees","newc","Новых",1)}${th("employees","dv","Просмотров, всего",1)}${th("employees","dp","Откр. номера, всего",1)}
+    ${th("employees","vPerAd","Просм. на 1 объявл.",1)}${th("employees","perAd","Откр. на 1 объявл.",1)}${th("employees","conv","Конверсия",1)}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead>`;
   return `<h2>Результаты сотрудников</h2>
   <div class="legend"><span>🥇🥈🥉 — больше всего открытий номера за период</span><span>⭐ — лучшая отдача: открытий на одно активное объявление (от 10 объявлений)</span><span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></span>лучшее значение в столбце</span></div>
   <div class="tbl-wrap"><table>${head}<tbody>${conf.map(tr).join("")}</tbody></table></div>
   ${unconf.length ? `<details class="sec"><summary class="muted" style="cursor:pointer">Не подтверждены (${unconf.length}) — имя взято из объявления, профиль продавца ещё уточняется</summary><div class="tbl-wrap sec"><table>${head}<tbody>${unconf.map(tr).join("")}</tbody></table></div></details>` : ""}
-  <p class="note">Нажмите на сотрудника, чтобы посмотреть его объявления.</p>`;
+  <p class="note">«Всего» — сумма за период по <b>всем</b> объявлениям сотрудника (у некоторых их больше тысячи), поэтому числа большие. Чтобы сравнивать сотрудников честно, смотрите «на 1 объявление». Открытия номера — это счётчик Kufar «показы телефона»: он считает нажатия «Показать телефон», в том числе с карточки в поиске, а не звонки. Нажмите на сотрудника, чтобы посмотреть его объявления.</p>`;
 }
 
 // ---------- по часам: ночной столбец не растягивает шкалу
