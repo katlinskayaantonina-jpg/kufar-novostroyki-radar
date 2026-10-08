@@ -103,6 +103,27 @@ a{color:var(--views)}
 .drawer .in{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:var(--surface);padding:18px;overflow:auto}
 .center{padding:40px;text-align:center;color:var(--ink-2)}
 .more{margin:10px auto;display:block}
+.pgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.pgrid3.tiny{margin-top:10px;font-size:12px;text-align:center}
+.agentcard{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
+.agenttop{display:flex;justify-content:space-between;gap:8px;align-items:center;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.adnow{margin-top:8px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2)}
+.adnow a{font-weight:600;text-decoration:none;color:var(--ink);display:block;font-size:13px}
+.adnow-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;color:var(--ink-2);margin-top:4px}
+.pill2{border-radius:999px;padding:3px 8px;font-size:11px;font-weight:600;white-space:nowrap}
+.pill2.vip{background:color-mix(in srgb,var(--views) 18%,transparent);color:var(--ink)}
+.pill2.highlight{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--ink)}
+.score{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface-2)}
+.score.r1{border-color:#d9b44a}.score.r2{border-color:#9fbfa9}.score.r3{border-color:#d1a07c}
+.bignum{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+tr.lead td{background:var(--accent-soft)}
+.callout{border-radius:12px;padding:16px;background:var(--accent-soft)}
+.hbar{display:grid;grid-template-columns:minmax(90px,170px) 1fr auto;gap:8px;align-items:center;margin:8px 0;font-size:12px}
+.hbar .track{height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden}.hbar .track div{height:100%;background:var(--views);border-radius:999px}
+.lg{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 8px;font-size:12px;cursor:pointer}.lg.off{opacity:.35;text-decoration:line-through}
+@media (max-width:820px){.pgrid3,.pgrid2{grid-template-columns:1fr}}
+
 @media (max-width:640px){ .lbl{min-width:auto;width:100%} .kpi .v{font-size:22px} h1{font-size:20px} }
 </style>
 </head>
@@ -156,7 +177,7 @@ const TZ_OFF = 3 * 3600 * 1000; // Минск, UTC+3
 const NIGHT = 24, SPREAD = 25;
 const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const EV_NAMES = {new:"Новое", gone:"Снято", back:"Вернулось", raise:"Поднятие", price:"Цена", promo_hl:"Выделение", promo_pp:"Закреп вверху", promo_rb:"Ленточка", title:"Заголовок", photo:"Обложка"};
-const TABS = [["overview","Обзор"],["ads","Объявления за период"],["leaders","Лидеры"],["employees","Сотрудники"],["hours","По часам"],["promo","Продвижение"],["placed","Что размещают"],["works","Что работает"]];
+const TABS = [["overview","Обзор"],["promo","Продвижение"],["ads","Объявления за период"],["leaders","Лидеры"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["works","Что работает"]];
 
 let CAT = null, CUBE = null, STATUS = null;
 const S = { period:"7", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"overview", sort:{}, limit:150 };
@@ -415,22 +436,173 @@ function viewHours(A){
   <p class="note">Час — середина интервала между двумя замерами (замер каждый час с 7 до 23). Серый столбец — всё, что накопилось за ночь. Просмотры по часам учитывают фильтры компании, сотрудника и комнатности; поиск и «только новостройки» на них не действуют.</p>`;
 }
 
-function viewPromo(A){
-  const ads = CAT.ads;
-  const promo = A.events.filter(e => e[2].startsWith("promo_") || e[2] === "raise").sort((a,b) => b[0]-a[0]);
-  const dayA = (d,id) => { const D = CUBE.days[d]; return D && D.a[id] ? D.a[id] : [0,0]; };
-  let s = `<h2>Продвижение и поднятия · ${fmt(promo.length)}</h2><div class="tbl-wrap"><table><thead><tr><th>Когда</th><th>Что</th><th>Объявление</th><th>Сотрудник</th>
-    <th class="num">Просм. накануне</th><th class="num">Просм. в день</th><th class="num">Просм. на след. день</th><th class="num">Откр. накануне</th><th class="num">Откр. в день</th><th class="num">Откр. на след. день</th></tr></thead><tbody>`;
-  for(const e of promo.slice(0, S.limit)){
-    const a = ads[e[1]] || {}; const d = dayOfTs(e[0]);
-    const b = dayA(addDays(d,-1), e[1]), c = dayA(d, e[1]), n = dayA(addDays(d,1), e[1]);
-    const what = EV_NAMES[e[2]] + (e[2].startsWith("promo_") ? (e[4] ? " — включено" : " — выключено") : "");
-    s += `<tr class="clickable" data-ad="${e[1]}"><td>${dtLocal(e[0])}</td><td>${esc(what)}</td><td class="title">${esc(a.t||e[1])}</td><td>${esc(empName(empKey(a)))}</td>
-      <td class="num">${fmt(b[0])}</td><td class="num">${fmt(c[0])}</td><td class="num">${fmt(n[0])}</td><td class="num">${fmt(b[1])}</td><td class="num">${fmt(c[1])}</td><td class="num">${fmt(n[1])}</td></tr>`;
+// ---------- Продвижение (логика Kufar Promo Intelligence)
+const P_COLORS = ['#2563eb','#e76f51','#2a9d8f','#7c3aed','#d97706','#db2777','#0891b2','#65a30d','#dc2626','#475569','#9333ea','#0f766e'];
+const PS = { metric:"phoneviews", hidden:new Set(), agent:"Все", other:null };
+function pcfg(){ return Object.assign({prices:{turbo:25,express:10,bump:1.5}, main_agents:[], excluded_agents:[], min_packages_for_efficiency:3}, CAT.promo||{}); }
+function pAgent(id){ const a = CAT.ads[id]; return a ? empName(empKey(a)) : null; }
+function pOrder(a,b){ const M = pcfg().main_agents, A = M.indexOf(a), B = M.indexOf(b); if(A>=0||B>=0){ if(A<0) return 1; if(B<0) return -1; return A-B; } return a.localeCompare(b,"ru"); }
+function promoData(days){
+  const ex = new Set(pcfg().excluded_agents), daySet = new Set(days);
+  const promoDaily = [], effectDaily = [];
+  for(const d of days){
+    const D = CUBE.days[d]; if(!D) continue;
+    for(const [id,code] of Object.entries(D.pr||{})){ const ag = pAgent(id); if(!ag || ex.has(ag)) continue; promoDaily.push({ad_id:id, day:d, promo_status: code===2?"vip":"highlight", agent:ag}); }
+    for(const [id,by] of Object.entries(D.pe||{})){ const ag = pAgent(id); if(!ag || ex.has(ag)) continue;
+      for(const [k,[v,p]] of Object.entries(by)) effectDaily.push({ad_id:id, day:d, promo_status: k==="2"?"vip":"highlight", agent:ag, views:v, phoneviews:p}); }
   }
-  s += `</tbody></table></div>`;
-  if(promo.length > S.limit) s += `<button class="btn more" data-more="1">Показать ещё</button>`;
-  return s + `<p class="note">Продвижение видно по меткам в выдаче Kufar в момент обхода (раз в час). «Не увидели» не значит «точно не было». Сравнение по суткам — ориентир, а не доказательство эффекта.</p>`;
+  return {promoDaily, effectDaily, daySet};
+}
+function pPackages(){
+  const ex = new Set(pcfg().excluded_agents), pr = pcfg().prices, out = [];
+  for(const [id,a] of Object.entries(CAT.ads)){
+    if(!(a.fv || a.fh)) continue; const ag = pAgent(id); if(!ag || ex.has(ag)) continue;
+    const pkg = a.fv ? "turbo" : "express", ts = a.fv || a.fh;
+    out.push({ad_id:id, agent:ag, package:pkg, purchase_ts:ts, purchase_day:dayOfTs(ts), price:+pr[pkg]||0, before: !!a.pb4});
+  }
+  return out;
+}
+function pAggregate(P, status){
+  const m = new Map(), get = a => { if(!m.has(a)) m.set(a,{agent:a, adDays:0, views:0, phones:0}); return m.get(a); };
+  for(const x of P.promoDaily) if(!status || x.promo_status===status) get(x.agent).adDays++;
+  for(const x of P.effectDaily) if(!status || x.promo_status===status){ const r = get(x.agent); r.views += x.views; r.phones += x.phoneviews; }
+  return [...m.values()].map(r => ({...r, viewsDay: r.adDays ? r.views/r.adDays : 0, phonesDay: r.adDays ? r.phones/r.adDays : 0}));
+}
+function pLeader(rows){ return [...rows].filter(x=>x.adDays>0).sort((a,b)=>(b.phones-a.phones)||(b.views-a.views)||a.agent.localeCompare(b.agent,"ru"))[0]?.agent || null; }
+function pCurrent(){
+  const ex = new Set(pcfg().excluded_agents), gen = CAT.generated, out = [];
+  for(const [id,a] of Object.entries(CAT.ads)){
+    if(!a.act || (a.ls||0) < gen - 600 || !(a.pp || a.hl)) continue;
+    const ag = pAgent(id); if(!ag || ex.has(ag)) continue;
+    const status = a.pp ? "vip" : "highlight", ts = a.fv || a.fh;
+    let known = !!ts && !a.pb4, dayNum = null;
+    if(known){ const n = Math.floor((gen - ts)/86400) + 1; if(n >= 1 && n <= (status==="vip"?3:7)) dayNum = n; else known = false; }
+    out.push({ad_id:id, agent:ag, status, day_num:dayNum, known_start:known, a});
+  }
+  return out;
+}
+function pBadge(x){
+  const lbl = x.status==="vip" ? "VIP" : "выделение", total = x.status==="vip" ? 3 : 7;
+  return `<span class="pill2 ${x.status}">${lbl}${x.known_start && x.day_num ? `, день ${x.day_num} из ${total}` : " · дата начала не определена"}</span>`;
+}
+function pAdLine(x){
+  const a = x.a;
+  return `<div class="adnow ${x.status}"><a href="https://re.kufar.by/vi/${esc(x.ad_id)}" target="_blank" rel="noopener noreferrer">${esc(a.ad || a.t || "Объявление "+x.ad_id)}</a>
+    <div class="adnow-meta"><span>${a.a!=null?fmt1(a.a)+" м² · ":""}${a.pu?fmt(a.pu)+" $":""}</span>${pBadge(x)}</div></div>`;
+}
+function pTrend(P, days){
+  const agents = [...new Set(P.effectDaily.map(x=>x.agent))].sort(pOrder);
+  const map = new Map(); for(const x of P.effectDaily){ const k = x.agent+"|"+x.day; map.set(k,(map.get(k)||0)+(+x[PS.metric]||0)); }
+  const color = new Map(agents.map((a,i)=>[a,P_COLORS[i%P_COLORS.length]]));
+  const vis = agents.filter(a=>!PS.hidden.has(a));
+  const W = 980, H = 300, pad = {l:52,r:18,t:16,b:38};
+  const raw = Math.max(1, ...vis.flatMap(a=>days.map(d=>map.get(a+"|"+d)||0)));
+  const maxY = niceMax(raw);
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" style="min-width:640px">`;
+  for(let i=0;i<=4;i++){ const v = maxY*(4-i)/4, y = pad.t+(H-pad.t-pad.b)*i/4; s += `<line class="grid" x1="${pad.l}" x2="${W-pad.r}" y1="${y}" y2="${y}"/><text x="${pad.l-8}" y="${y+4}" text-anchor="end">${fmtS(v)}</text>`; }
+  const lab = d => d.slice(8,10)+"."+d.slice(5,7);
+  if(days.length === 1){
+    const gap = (W-pad.l-pad.r)/Math.max(vis.length,1), bw = Math.max(18, Math.min(54, gap/1.6));
+    vis.forEach((a,i)=>{ const v = map.get(a+"|"+days[0])||0, h = v/maxY*(H-pad.t-pad.b), x = pad.l+i*gap+(gap-bw)/2, y = H-pad.b-h;
+      s += `<path d="${roundTop(x,y,bw,h)}" fill="${color.get(a)}" data-tip="${esc(a)}: ${fmt(v)}"/><text x="${x+bw/2}" y="${Math.max(12,y-6)}" text-anchor="middle">${fmt(v)}</text>`; });
+    s += `<text x="${(pad.l+W-pad.r)/2}" y="${H-9}" text-anchor="middle">${lab(days[0])}</text>`;
+  } else {
+    const X = i => pad.l+(W-pad.l-pad.r)*(i/(days.length-1));
+    vis.forEach(a=>{ const pts = days.map((d,i)=>{ const v = map.get(a+"|"+d)||0; return [X(i), H-pad.b-v/maxY*(H-pad.t-pad.b), v, d]; }), c = color.get(a);
+      s += `<polyline fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(p=>p[0]+","+p[1]).join(" ")}"/>`;
+      pts.forEach(p => s += `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${c}" stroke="var(--surface)" stroke-width="2" data-tip="${esc(a)} · ${lab(p[3])}: ${fmt(p[2])}"/>`); });
+    days.forEach((d,i)=>{ if(days.length<=10 || i%Math.ceil(days.length/8)===0) s += `<text x="${X(i)}" y="${H-9}" text-anchor="middle">${lab(d)}</text>`; });
+  }
+  s += `</svg>`;
+  const legend = agents.map(a=>`<button class="lg ${PS.hidden.has(a)?"off":""}" data-ptrend="${esc(a)}"><span class="sw" style="background:${color.get(a)}"></span>${esc(a)}</button>`).join("");
+  return {svg:s, legend};
+}
+function pEfficiency(P, days){
+  const cfg = pcfg(), daySet = P.daySet, last = days[days.length-1];
+  const endTs = last === todayStr() ? STATUS.last_run : Date.parse(last+"T23:59:59+03:00")/1000;
+  const pk = pPackages().filter(p => !p.before && daySet.has(p.purchase_day));
+  const m = new Map(), row = a => { if(!m.has(a)) m.set(a,{agent:a, turbo:0, express:0, bumps:0, paid:0, worked:0, views:0, phones:0, packages:0}); return m.get(a); };
+  for(const p of pk){
+    const r = row(p.agent); r[p.package]++; r.packages++; r.paid += p.price;
+    r.worked += p.price * Math.min(1, Math.max(0, (endTs - p.purchase_ts)/86400)/7);
+    const end = p.purchase_ts + 7*86400;
+    for(const e of P.effectDaily){ if(e.ad_id !== p.ad_id) continue; const t = Date.parse(e.day+"T12:00:00+03:00")/1000; if(t < p.purchase_ts || t > end) continue; r.views += e.views; r.phones += e.phoneviews; }
+  }
+  // поднятия без VIP и выделения в тот же день
+  const ex = new Set(cfg.excluded_agents);
+  for(const d of days){ const D = CUBE.days[d]; if(!D) continue;
+    for(const e of D.ev){ if(e[2] !== "raise" || (D.pr||{})[e[1]]) continue; const ag = pAgent(e[1]); if(!ag || ex.has(ag)) continue; const r = row(ag); r.bumps++; r.paid += +cfg.prices.bump||0; r.worked += +cfg.prices.bump||0; } }
+  return [...m.values()].map(r => ({...r, viewsRub: r.worked ? r.views/r.worked : 0, rubPhone: r.phones ? r.worked/r.phones : null, qualified: r.packages >= (cfg.min_packages_for_efficiency||3)}));
+}
+const f1x = n => n==null||!isFinite(n) ? "—" : n.toLocaleString("ru-RU",{minimumFractionDigits:1, maximumFractionDigits:1});
+function viewPromo(){
+  const days = periodDays(), P = promoData(days), cfg = pcfg();
+  const fmt2 = n => n==null ? "—" : n.toLocaleString("ru-RU",{minimumFractionDigits:2, maximumFractionDigits:2});
+  // KPI
+  const ids = new Set(P.promoDaily.map(x=>x.ad_id)), vipIds = new Set(P.promoDaily.filter(x=>x.promo_status==="vip").map(x=>x.ad_id)), hiIds = new Set(P.promoDaily.filter(x=>x.promo_status==="highlight").map(x=>x.ad_id));
+  const views = P.effectDaily.reduce((s,x)=>s+x.views,0), phones = P.effectDaily.reduce((s,x)=>s+x.phoneviews,0);
+  let h = `<div class="kpis">
+    ${kpi(fmt(ids.size),"Объявлений в продвижении",`уникальных за период · VIP: ${fmt(vipIds.size)}, выделение без VIP: ${fmt(hiIds.size)} (одно объявление может быть в обеих)`)}
+    ${kpi(fmt(views),"Просмотры рекламы","VIP + выделение")}
+    ${kpi(fmt(phones),"Открытия телефона","на рекламируемых объявлениях")}
+    ${kpi(views ? (phones/views*100).toLocaleString("ru-RU",{minimumFractionDigits:1,maximumFractionDigits:1})+"%" : "—","Конверсия в открытие","открытия / просмотры")}
+  </div>`;
+  // Сейчас в рекламе
+  const cur = pCurrent(), groups = new Map();
+  for(const x of cur){ if(!groups.has(x.agent)) groups.set(x.agent,[]); groups.get(x.agent).push(x); }
+  const vipFirst = (x,y) => (x.status==="vip") === (y.status==="vip") ? 0 : x.status==="vip" ? -1 : 1;
+  h += `<div class="panel sec"><h2>Сейчас в рекламе <span class="pill" style="font-size:11px">последний обход ${dtLocal(CAT.generated)}</span></h2>
+    <p class="note" style="margin-top:-4px">Только объявления, подтверждённые в последнем обходе. Не зависит от выбранного периода.</p><div class="pgrid3">` +
+    cfg.main_agents.map(a => { const rows = (groups.get(a)||[]).sort(vipFirst);
+      return `<div class="agentcard"><div class="agenttop"><b>${esc(a)}</b><span class="muted">VIP ${rows.filter(x=>x.status==="vip").length} · без VIP ${rows.filter(x=>x.status==="highlight").length}</span></div>${rows.map(pAdLine).join("") || `<div class="muted" style="padding:12px 0">Сейчас активной рекламы нет</div>`}</div>`; }).join("") + `</div>`;
+  const others = [...groups.entries()].filter(([a]) => !cfg.main_agents.includes(a)).sort((a,b)=>pOrder(a[0],b[0]));
+  h += `<div class="row sec">${others.length ? others.map(([a,r]) => `<button class="chip" data-pother="${esc(a)}" aria-pressed="${PS.other===a}">${esc(a)} · VIP ${r.filter(x=>x.status==="vip").length} · без VIP ${r.filter(x=>x.status==="highlight").length}</button>`).join("") : `<span class="muted">Других активных риелторов сейчас нет</span>`}</div>`;
+  if(PS.other && groups.has(PS.other)) h += `<div class="agentcard sec"><div class="agenttop"><b>${esc(PS.other)}</b><button class="btn" data-pother="">Закрыть</button></div><div class="pgrid2">${groups.get(PS.other).sort(vipFirst).map(pAdLine).join("")}</div></div>`;
+  h += `</div>`;
+  // Результат рекламы — три основных риелтора
+  const all = pAggregate(P);
+  const main = cfg.main_agents.map(a => { const r = all.find(x=>x.agent===a) || {agent:a, adDays:0, views:0, phones:0}; return {...r, conv: r.views ? 100*r.phones/r.views : 0}; })
+    .sort((a,b)=>(b.phones-a.phones)||(b.conv-a.conv)||(b.views-a.views));
+  const medals = ["🥇 1 место","🥈 2 место","🥉 3 место"];
+  h += `<div class="panel sec"><h2>Результат рекламы</h2><p class="note" style="margin-top:-4px">Основные риелторы по местам: у кого больше открытий телефона за период, тот выше.</p><div class="pgrid3">` +
+    main.map((x,i) => `<div class="score r${i+1}"><div class="muted" style="font-weight:700">${medals[i]||(i+1)+" место"}</div><div style="font-weight:700;font-size:16px;margin:4px 0 8px">${esc(x.agent)}</div>
+      <div style="display:flex;align-items:baseline;gap:8px"><span class="bignum">${fmt(x.phones)}</span><span class="muted">открытий телефона</span></div>
+      <div class="pgrid3 tiny"><div><b>${fmt(x.views)}</b><br><span class="muted">просмотров</span></div><div><b>${x.conv.toLocaleString("ru-RU",{minimumFractionDigits:1,maximumFractionDigits:1})}%</b><br><span class="muted">конверсия</span></div><div><b>${fmt(x.adDays)}</b><br><span class="muted">объявл.-дней</span></div></div></div>`).join("") + `</div></div>`;
+  // VIP и выделение без VIP
+  const stTable = (status, title) => { const rows = pAggregate(P, status).sort((a,b)=>pOrder(a.agent,b.agent)), lead = pLeader(rows);
+    return `<h3 style="margin:14px 0 6px">${title}</h3><div class="tbl-wrap"><table><thead><tr><th>Агент</th><th class="num">Объявл.-дней</th><th class="num">Просмотры</th><th class="num">Открытия тел.</th><th class="num">Просм./день</th><th class="num">Тел./день</th></tr></thead><tbody>${
+      rows.length ? rows.map(x => `<tr class="${x.agent===lead?"lead":""}"><td>${esc(x.agent)}${x.agent===lead?' <span class="badge on">Лидер</span>':""}</td><td class="num">${fmt(x.adDays)}</td><td class="num">${fmt(x.views)}</td><td class="num">${fmt(x.phones)}</td><td class="num">${f1x(x.viewsDay)}</td><td class="num">${fmt2(x.phonesDay)}</td></tr>`).join("") : `<tr><td colspan="6" class="muted">Нет рекламы этого типа</td></tr>`}</tbody></table></div>`; };
+  h += `<div class="panel sec"><h2>VIP и выделение без VIP</h2><p class="note" style="margin-top:-4px">Один день не считается дважды: если в этот день был VIP, он относится в VIP. В «Выделение без VIP» — только дни, когда выделение работало уже без VIP.</p>${stTable("vip","VIP")}${stTable("highlight","Выделение без VIP")}</div>`;
+  // Динамика
+  const T = pTrend(P, days);
+  h += `<div class="panel sec"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><h2>Динамика рекламы</h2>
+    <div class="row"><button class="chip" data-pmetric="phoneviews" aria-pressed="${PS.metric==="phoneviews"}">Открытия телефона</button><button class="chip" data-pmetric="views" aria-pressed="${PS.metric==="views"}">Просмотры</button></div></div>
+    <div style="overflow-x:auto">${T.svg}</div><div class="row" style="margin-top:6px">${T.legend}</div><p class="note">Нажмите на имя риелтора, чтобы скрыть или вернуть его линию.</p></div>`;
+  // Эффективность
+  const eff = pEfficiency(P, days).sort((a,b)=>pOrder(a.agent,b.agent));
+  const q = eff.filter(x=>x.qualified && x.rubPhone!=null).sort((a,b)=>a.rubPhone-b.rubPhone), lead = q[0];
+  const maxQ = Math.max(.001, ...q.map(x=>x.rubPhone));
+  h += `<div class="panel sec"><h2>Эффективность покупок рекламы</h2><p class="note" style="margin-top:-4px">Учитываются пакеты, купленные внутри выбранного периода. В рейтинг цены результата входят агенты с ${cfg.min_packages_for_efficiency}+ пакетами. Цены: Турбо ${cfg.prices.turbo} руб., Экспресс ${cfg.prices.express} руб., поднятие ${cfg.prices.bump} руб.</p>
+    <div class="grid2"><div class="callout"><div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.08em">Лидер по цене результата</div><div style="font-size:22px;font-weight:700;margin:6px 0">${lead?esc(lead.agent):"Недостаточно данных"}</div><div class="bignum">${lead?fmt2(lead.rubPhone)+" руб.":"—"}</div><div class="muted">за одно открытие телефона · меньше — лучше</div></div>
+    <div><h3 style="margin:0 0 8px">Цена открытия телефона</h3>${q.length ? q.slice(0,8).map(x => `<div class="hbar"><span>${esc(x.agent)}</span><div class="track"><div style="width:${Math.max(3,x.rubPhone/maxQ*100)}%"></div></div><b>${fmt2(x.rubPhone)} руб.</b></div>`).join("") : `<p class="muted">Нет данных за период</p>`}</div></div>
+    <div class="tbl-wrap sec"><table><thead><tr><th>Агент</th><th class="num">Турбо</th><th class="num">Экспресс</th><th class="num">Поднятия</th><th class="num">Оплачено</th><th class="num">Отработано</th><th class="num">Просмотры</th><th class="num">Открытия</th><th class="num">Просм./руб.</th><th class="num">Руб./открытие</th></tr></thead><tbody>${
+      eff.length ? eff.map(x => `<tr class="${lead&&x.agent===lead.agent?"lead":""}" style="${x.qualified?"":"color:var(--ink-3);font-style:italic"}"><td>${esc(x.agent)}${lead&&x.agent===lead.agent?' <span class="badge on">Лидер</span>':""}</td><td class="num">${x.turbo}</td><td class="num">${x.express}</td><td class="num">${x.bumps}</td><td class="num">${f1x(x.paid)}</td><td class="num">${f1x(x.worked)}</td><td class="num">${fmt(x.views)}</td><td class="num">${fmt(x.phones)}</td><td class="num">${f1x(x.viewsRub)}</td><td class="num">${x.rubPhone==null?"—":fmt2(x.rubPhone)}</td></tr>`).join("") : `<tr><td colspan="10" class="muted">В этом периоде новых покупок рекламы не зафиксировано</td></tr>`}</tbody></table></div></div>`;
+  // Все объявления в продвижении
+  const statusBy = new Map(), daysBy = new Map(), effBy = new Map();
+  for(const x of P.promoDaily){ if(!statusBy.has(x.ad_id)) statusBy.set(x.ad_id,new Set()); statusBy.get(x.ad_id).add(x.promo_status); daysBy.set(x.ad_id,(daysBy.get(x.ad_id)||0)+1); }
+  for(const x of P.effectDaily){ const e = effBy.get(x.ad_id) || {v:0,p:0}; e.v += x.views; e.p += x.phoneviews; effBy.set(x.ad_id,e); }
+  const pkMap = new Map(pPackages().map(x=>[x.ad_id,x]));
+  const agentsList = ["Все", ...[...new Set([...ids].map(pAgent))].sort(pOrder)];
+  let rows = [...ids].map(id => ({id, a:CAT.ads[id], agent:pAgent(id)}));
+  if(PS.agent !== "Все") rows = rows.filter(r => r.agent === PS.agent);
+  rows.sort((x,y)=>pOrder(x.agent,y.agent) || (x.a.ad||"").localeCompare(y.a.ad||"","ru"));
+  h += `<div class="panel sec"><h2>Все объявления в продвижении · ${fmt(rows.length)}</h2><div class="row" style="margin-bottom:8px">${agentsList.map(a=>`<button class="chip" data-pagent="${esc(a)}" aria-pressed="${PS.agent===a}">${esc(a)}</button>`).join("")}</div>
+    <div class="tbl-wrap"><table><thead><tr><th>Агент</th><th>Объявление</th><th>Реклама</th><th class="num">Дней</th><th class="num">Просмотры</th><th class="num">Открытия</th><th class="num">Цена $</th></tr></thead><tbody>${
+      rows.length ? rows.map(r => { const st = statusBy.get(r.id)||new Set(), e = effBy.get(r.id)||{v:0,p:0}, pk = pkMap.get(r.id);
+        return `<tr><td>${esc(r.agent)}</td><td class="title"><a href="https://re.kufar.by/vi/${esc(r.id)}" target="_blank" rel="noopener noreferrer">${esc(r.a.ad||r.a.t||r.id)}</a><div class="muted" style="font-size:12px">${r.a.a!=null?fmt1(r.a.a)+" м² · ":""}${r.a.fl?esc(r.a.fl)+" эт.":""}</div></td>
+          <td>${st.has("vip")?"VIP":st.has("highlight")?"выделение":"—"}${pk?" · "+(pk.package==="turbo"?"Турбо":"Экспресс"):""}</td><td class="num">${daysBy.get(r.id)||0}</td><td class="num">${fmt(e.v)}</td><td class="num">${fmt(e.p)}</td><td class="num">${fmt(r.a.pu)}</td></tr>`; }).join("") : `<tr><td colspan="7" class="muted">Нет объявлений для выбранного фильтра</td></tr>`}</tbody></table></div>
+    <p class="note">Поднятия — по изменению даты публикации между соседними обходами; часть поднятий может быть пропущена. Пакеты, начавшиеся до начала истории (22.09), не считаются купленными в известную дату. Учитываются только объявления в Минск-Мире. Фильтры сотрудников и комнатности на эту вкладку не действуют — только период.</p></div>`;
+  return h;
 }
 
 function viewPlaced(A){
@@ -493,7 +665,7 @@ function openAd(id){
 // ---------- отрисовка
 function render(){
   const A = aggregate();
-  const V = {overview:viewOverview, ads:viewAds, leaders:viewLeaders, employees:viewEmployees, hours:viewHours, promo:viewPromo, placed:viewPlaced, works:viewWorks}[S.tab];
+  const V = {overview:viewOverview, ads:viewAds, leaders:viewLeaders, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, works:viewWorks}[S.tab];
   $("#view").innerHTML = V(A);
   renderControls();
 }
@@ -520,6 +692,14 @@ function renderEmpList(){
 
 // ---------- события интерфейса
 document.addEventListener("click", ev => {
+  const pt = ev.target.closest("[data-pother],[data-pmetric],[data-ptrend],[data-pagent]");
+  if(pt){
+    if(pt.dataset.pother !== undefined) PS.other = pt.dataset.pother && PS.other !== pt.dataset.pother ? pt.dataset.pother : null;
+    if(pt.dataset.pmetric) PS.metric = pt.dataset.pmetric;
+    if(pt.dataset.ptrend){ const a = pt.dataset.ptrend; PS.hidden.has(a) ? PS.hidden.delete(a) : PS.hidden.add(a); }
+    if(pt.dataset.pagent) PS.agent = pt.dataset.pagent;
+    render(); return;
+  }
   const t = ev.target.closest("[data-period],[data-wd],[data-company],[data-room],[data-tab],[data-sort],[data-ad],[data-emp],[data-more],#reset,#empBtn,#empClear,#closeDrawer");
   if(!t){ if(!ev.target.closest(".emp-box")) $("#empList").hidden = true; if(ev.target.id==="drawer") $("#drawer").style.display="none"; return; }
   if(t.dataset.period){ S.period = t.dataset.period; if(S.period==="custom" && !S.from){ S.to = todayStr(); S.from = addDays(S.to,-13); $("#dFrom").value=S.from; $("#dTo").value=S.to; } }

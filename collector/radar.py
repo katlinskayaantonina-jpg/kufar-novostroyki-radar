@@ -334,6 +334,44 @@ def merge_import(state: dict, cube: dict) -> str:
     return f"days={replaced} ads_added={added}"
 
 
+def merge_promo_history(state: dict, cube: dict) -> str:
+    """Однократно: история рекламы (VIP/выделение) из Kufar Promo Intelligence, зашифрована RADAR_KEY."""
+    path = ROOT / "import" / "promo_history.enc"
+    key = os.environ.get("RADAR_KEY", "").strip()
+    if not path.exists() or not key:
+        return ""
+    from crypto import decrypt  # noqa: E402
+    data = json.loads(decrypt(path.read_bytes(), key).decode("utf-8"))
+    sig = str(data.get("generated"))
+    if state.get("promo_imported") == sig:
+        return ""
+    days = cube.setdefault("days", {})
+    for d, D in (data.get("days") or {}).items():
+        day = days.setdefault(d, empty_day())
+        pr = day.setdefault("pr", {})
+        for aid, code in D.get("pr", {}).items():
+            pr[aid] = max(pr.get(aid, 0), code)
+        pe = day.setdefault("pe", {})
+        for aid, by in D.get("pe", {}).items():
+            for k, (dv, dp) in by.items():
+                cur = pe.setdefault(aid, {}).setdefault(k, [0, 0])
+                cur[0] += dv
+                cur[1] += dp
+    n = 0
+    for aid, a in (data.get("ads") or {}).items():
+        s = state["ads"].get(aid)
+        if s is None:
+            continue
+        n += 1
+        for k in ("fv", "fh"):
+            if a.get(k):
+                s[k] = min(s.get(k) or a[k], a[k])
+        if a.get("pb4"):
+            s["pb4"] = 1
+    state["promo_imported"] = sig
+    return f"days={len(data.get('days') or {})} ads={n}"
+
+
 def empty_day() -> dict:
     return {"a": {}, "ph": [], "vh": [], "ev": [], "cov": {}, "runs": []}
 
@@ -482,6 +520,10 @@ def main() -> int:
         s.update({k: r[k] for k in ("t", "r", "a", "fl", "ft", "pu", "pb", "cur", "ad", "lt", "img", "ni", "hl", "pp", "rb",
                                      "nw", "cond", "dist", "lat", "lon", "cn")})
         s["c"] = company
+        if r["pp"]:
+            s["fv"] = min(s.get("fv") or run_ts, run_ts)
+        if r["hl"]:
+            s["fh"] = min(s.get("fh") or run_ts, run_ts)
         s["pid"] = pid
         s["ls"] = run_ts
         s["act"] = 1
@@ -568,6 +610,9 @@ def main() -> int:
             d0["ev"] = [e for e in d0["ev"] if e[2] != "price"]
             STATS["fixed_price_events"] = before - len(d0["ev"])
         state["fix_price_0810"] = 1
+    pimp = merge_promo_history(state, cube)
+    if pimp:
+        STATS["promo_import"] = pimp  # type: ignore[assignment]
     imp = merge_import(state, cube)
     if imp and imp != "already":
         STATS["import"] = imp  # type: ignore[assignment]
@@ -577,6 +622,7 @@ def main() -> int:
     adds_vh: dict[str, Counter] = defaultdict(Counter)
     adds_ph: dict[str, Counter] = defaultdict(Counter)
     cov: dict[str, Counter] = defaultdict(Counter)
+    adds_pe: dict[str, dict] = defaultdict(dict)
 
     for aid, v, p, ts in results:
         if v is None:
@@ -595,6 +641,11 @@ def main() -> int:
                 dv, dp = max(dv, 0), max(dp, 0)
             dkey, hour = bucket_for(prev_m, ts)
             cov[dkey][str(hour)] += 1
+            promo = 2 if s.get("pp") else 1 if s.get("hl") else 0
+            if promo and (dv or dp) and s.get("ls") == run_ts:
+                pe = adds_pe[day_key(ts)].setdefault(aid, {}).setdefault(str(promo), [0, 0])
+                pe[0] += dv
+                pe[1] += dp
             if dv or dp:
                 cur = adds_a[dkey].setdefault(aid, [0, 0])
                 cur[0] += dv
@@ -610,6 +661,19 @@ def main() -> int:
     log("Шаг 5: сохранение")
     for e in events:
         days.setdefault(day_key(e[0]), empty_day())["ev"].append(e)
+    # реклама за день: 2 = VIP (polepos), 1 = выделение; VIP перекрывает выделение
+    today_d = days.setdefault(day_key(run_ts), empty_day())
+    pr = today_d.setdefault("pr", {})
+    for aid, s in ads_state.items():
+        if s.get("ls") == run_ts and (s.get("pp") or s.get("hl")):
+            pr[aid] = max(pr.get(aid, 0), 2 if s.get("pp") else 1)
+    for dkey, per_ad in adds_pe.items():
+        dpe = days.setdefault(dkey, empty_day()).setdefault("pe", {})
+        for aid, by in per_ad.items():
+            for k, (dv, dp) in by.items():
+                cur = dpe.setdefault(aid, {}).setdefault(k, [0, 0])
+                cur[0] += dv
+                cur[1] += dp
     for dkey in set(adds_a) | set(adds_vh) | set(adds_ph) | set(cov):
         d = days.setdefault(dkey, empty_day())
         for aid, (dv, dp) in adds_a[dkey].items():
@@ -646,11 +710,12 @@ def main() -> int:
     size_state = kv.put_json("state", state)
     size_cube = kv.put_json("cube", cube)
 
-    catalog_fields = ("c", "pid", "cn", "t", "r", "a", "fl", "ft", "pu", "ad", "lt", "lt0", "fs", "ls", "act",
+    catalog_fields = ("c", "pid", "cn", "t", "r", "a", "fl", "ft", "pu", "ad", "lt", "lt0", "fs", "ls", "act", "fv", "fh", "pb4",
                       "img", "ni", "hl", "pp", "rb", "nw", "v", "p")
     catalog = {
         "generated": run_ts,
         "companies": {k: c["label"] for k, c in companies.items()},
+        "promo": cfg.get("promo") or {},
         "profiles": {pid: {"name": p.get("name") or "", "company": p.get("company"), "auto": p.get("auto", 0)}
                      for pid, p in profiles.items()},
         "ads": {aid: {k: s.get(k) for k in catalog_fields if s.get(k) not in (None, "")} for aid, s in ads_state.items()},
