@@ -117,6 +117,8 @@ a{color:var(--views)}
 .badge.fast{background:#fff1d6;color:#8a5a00;border-color:transparent}
 :root[data-theme="dark"] .badge.fast{background:#3a2c14;color:#e3a54a}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .badge.fast{background:#3a2c14;color:#e3a54a}}
+tr.grp th{font-size:11px;text-align:center;color:var(--ink-3);border-bottom:none;padding-bottom:0}
+.gs{border-left:1px solid var(--line)}
 td.bestcell{background:var(--accent-soft);font-weight:700}
 tr.toprow td:first-child{font-weight:700}
 .grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:10px}
@@ -450,30 +452,35 @@ function viewAds(A){
 // ---------- сотрудники
 function viewEmployees(A){
   const ads = CAT.ads, m = new Map();
-  const get = k => { if(!m.has(k)) m.set(k,{k, name:empName(k), confirmed:k.startsWith("p:"), company:"", active:0, newc:0, dv:0, dp:0, raises:0, promo:0, ph:new Array(24).fill(0)}); return m.get(k); };
+  const newSet = new Set(A.events.filter(e => e[2]==="new").map(e => e[1]));   // размещены в выбранном периоде
+  const get = k => { if(!m.has(k)) m.set(k,{k, name:empName(k), confirmed:k.startsWith("p:"), company:"", active:0, newc:0, nv:0, np:0, ov:0, op:0, dv:0, dp:0, raises:0, promo:0, ph:new Array(24).fill(0)}); return m.get(k); };
   for(const [id,a] of Object.entries(ads)){ if(!adOk(id,a)) continue; const e = get(empKey(a)); e.company = CAT.companies[a.c]||""; if(a.act) e.active++; }
+  for(const id of newSet){ const a = ads[id]; if(adOk(id,a)) get(empKey(a)).newc++; }
   for(const [id,x] of A.per){ const a = ads[id]; const e = get(empKey(a)); e.dv += x.dv; e.dp += x.dp;
-    for(const ev of x.ev){ if(ev[2]==="new") e.newc++; if(ev[2]==="raise") e.raises++; if(ev[2].startsWith("promo_") && ev[4]) e.promo++; } }
+    if(newSet.has(id)){ e.nv += x.dv; e.np += x.dp; } else { e.ov += x.dv; e.op += x.dp; }
+    for(const ev of x.ev){ if(ev[2]==="raise") e.raises++; if(ev[2].startsWith("promo_") && ev[4]) e.promo++; } }
   for(const d of A.days){ const D = CUBE.days[d]; if(!D) continue; for(const [id,h,n] of D.ph){ const a = ads[id]; if(!adOk(id,a) || h>23) continue; get(empKey(a)).ph[h] += n; } }
-  const all = [...m.values()].map(e => { const mx = Math.max(...e.ph); return {...e, perAd: e.active ? e.dp/e.active : 0, vPerAd: e.active ? e.dv/e.active : 0, conv: e.dv ? e.dp/e.dv : 0, best: mx ? e.ph.indexOf(mx) : -1}; });
+  const all = [...m.values()].map(e => { const mx = Math.max(...e.ph); return {...e, npPerNew: e.newc ? e.np/e.newc : 0, perAd: e.active ? e.dp/e.active : 0, conv: e.dv ? e.dp/e.dv : 0, best: mx ? e.ph.indexOf(mx) : -1}; });
   const conf = all.filter(e => e.confirmed), unconf = all.filter(e => !e.confirmed);
   sortRows(conf, "employees", {key:"dp", dir:-1}); sortRows(unconf, "employees", {key:"dp", dir:-1});
-  // кто лучше: места по открытиям номера и звёзды за отдачу с одного объявления
   const byDp = [...conf].sort((a,b)=>b.dp-a.dp), medal = new Map(byDp.slice(0,3).filter(e=>e.dp>0).map((e,i)=>[e.k,["🥇","🥈","🥉"][i]]));
   const byEff = conf.filter(e => e.active >= 10).sort((a,b)=>b.perAd-a.perAd), star = new Set(byEff.slice(0,3).filter(e=>e.perAd>0).map(e=>e.k));
-  const cols = ["active","newc","dv","dp","vPerAd","perAd","conv"], best = {};
+  const cols = ["active","newc","nv","np","npPerNew","ov","op","perAd","conv"], best = {};
   for(const c of cols) best[c] = Math.max(...conf.map(e => e[c]||0));
-  const cell = (e,c,txt) => `<td class="num ${e.confirmed && e[c] && e[c]===best[c] ? "bestcell" : ""}">${txt}</td>`;
-  const tr = e => `<tr class="clickable ${medal.has(e.k)?"toprow":""}" data-emp="${esc(e.k)}"><td>${medal.get(e.k)||""} ${esc(e.name)}${star.has(e.k)?' <span class="badge fast" title="Лучшая отдача: больше всего открытий номера на одно активное объявление">⭐ отдача</span>':""}</td><td>${esc(e.company)}</td>
-    ${cell(e,"active",fmt(e.active))}${cell(e,"newc",fmt(e.newc))}${cell(e,"dv",fmt(e.dv))}${cell(e,"dp",fmt(e.dp))}${cell(e,"vPerAd",fmt1(e.vPerAd))}${cell(e,"perAd",fmt1(e.perAd))}${cell(e,"conv",e.dv?pct(e.dp,e.dv):"—")}
+  const cell = (e,c,txt,cls="") => `<td class="num ${cls} ${e.confirmed && e[c] && e[c]===best[c] ? "bestcell" : ""}">${txt}</td>`;
+  const tr = e => `<tr class="clickable ${medal.has(e.k)?"toprow":""}" data-emp="${esc(e.k)}"><td>${medal.get(e.k)||""} ${esc(e.name)}${star.has(e.k)?' <span class="badge fast" title="Лучшая отдача: больше всего открытий номера на одно активное объявление">⭐ отдача</span>':""}<div class="muted" style="font-size:11px">${esc(e.company)}</div></td>
+    ${cell(e,"active",fmt(e.active))}${cell(e,"newc",fmt(e.newc),"gs")}${cell(e,"nv",fmt(e.nv))}${cell(e,"np",fmt(e.np))}${cell(e,"npPerNew",e.newc?fmt1(e.npPerNew):"—")}
+    ${cell(e,"ov",fmt(e.ov),"gs")}${cell(e,"op",fmt(e.op))}${cell(e,"perAd",fmt1(e.perAd),"gs")}${cell(e,"conv",e.dv?pct(e.dp,e.dv):"—")}
     <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`;
-  const head = `<thead><tr>${th("employees","name","Сотрудник")}${th("employees","company","Компания")}${th("employees","active","Активных",1)}${th("employees","newc","Новых",1)}${th("employees","dv","Просмотров, всего",1)}${th("employees","dp","Откр. номера, всего",1)}
-    ${th("employees","vPerAd","Просм. на 1 объявл.",1)}${th("employees","perAd","Откр. на 1 объявл.",1)}${th("employees","conv","Конверсия",1)}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead>`;
+  const g = h => h.replace('class="num"','class="num gs"');
+  const head = `<thead><tr class="grp"><th></th><th></th><th colspan="4" class="gs">Новые — размещены в периоде</th><th colspan="2" class="gs">Старые — размещены раньше</th><th colspan="2" class="gs">Итого</th><th colspan="3"></th></tr>
+    <tr>${th("employees","name","Сотрудник")}${th("employees","active","Активных",1)}${g(th("employees","newc","Размещено",1))}${th("employees","nv","Просм.",1)}${th("employees","np","Откр. номера",1)}${th("employees","npPerNew","Откр. на 1 новое",1)}
+    ${g(th("employees","ov","Просм.",1))}${th("employees","op","Откр. номера",1)}${g(th("employees","perAd","Откр. на 1 объявл.",1))}${th("employees","conv","Конверсия",1)}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead>`;
   return `<h2>Результаты сотрудников</h2>
   <div class="legend"><span>🥇🥈🥉 — больше всего открытий номера за период</span><span>⭐ — лучшая отдача: открытий на одно активное объявление (от 10 объявлений)</span><span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></span>лучшее значение в столбце</span></div>
   <div class="tbl-wrap"><table>${head}<tbody>${conf.map(tr).join("")}</tbody></table></div>
   ${unconf.length ? `<details class="sec"><summary class="muted" style="cursor:pointer">Не подтверждены (${unconf.length}) — имя взято из объявления, профиль продавца ещё уточняется</summary><div class="tbl-wrap sec"><table>${head}<tbody>${unconf.map(tr).join("")}</tbody></table></div></details>` : ""}
-  <p class="note">«Всего» — сумма за период по <b>всем</b> объявлениям сотрудника (у некоторых их больше тысячи), поэтому числа большие. Чтобы сравнивать сотрудников честно, смотрите «на 1 объявление». Открытия номера — это счётчик Kufar «показы телефона»: он считает нажатия «Показать телефон», в том числе с карточки в поиске, а не звонки. Нажмите на сотрудника, чтобы посмотреть его объявления.</p>`;
+  <p class="note"><b>Новые</b> — объявления, размещённые в выбранном периоде: сколько их посмотрели и сколько раз открыли номер. <b>Старые</b> — объявления, размещённые раньше, которые смотрели и открывали в этом периоде. Открытия номера — счётчик Kufar «показы телефона», а не звонки. Нажмите на сотрудника, чтобы посмотреть его объявления.</p>`;
 }
 
 // ---------- по часам: ночной столбец не растягивает шкалу
