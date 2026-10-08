@@ -10,12 +10,12 @@ const { chromium } = require('playwright');
   await p.goto(url, { waitUntil: 'networkidle' });
   await p.waitForTimeout(1500);
   const out = { status: await p.textContent('#status') };
-  for (const t of ['overview', 'ads', 'leaders', 'employees', 'hours', 'promo', 'placed', 'works']) {
+  for (const t of ['overview', 'promo', 'ads', 'employees', 'hours', 'placed', 'works']) {
     await p.click(`[data-tab="${t}"]`);
     await p.waitForTimeout(400);
     out[t] = await p.evaluate(() => ({
       kpis: [...document.querySelectorAll('.kpi .v')].map(e => e.textContent).slice(0, 7).join(' | '),
-      rows: document.querySelectorAll('tbody tr').length,
+      rows: document.querySelectorAll('tbody tr').length, cards: document.querySelectorAll('.acard').length,
       bars: document.querySelectorAll('svg path').length,
     }));
   }
