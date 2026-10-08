@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Радар новостроек</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f6f5f2; --surface:#fcfcfb; --surface-2:#f0efeb; --line:#e3e1db;
+  --ink:#0b0b0b; --ink-2:#52514e; --ink-3:#86847d;
+  --accent:#1f5f4a; --accent-ink:#ffffff; --accent-soft:#e3efe9;
+  --views:#2a78d6; --phones:#eb6834;
+  --heat-0:#eef4fb; --heat-1:#c9dcf3; --heat-2:#90b8e8; --heat-3:#4f8fd9; --heat-4:#1f5fae;
+  --warn:#9a5b00; --warn-soft:#fdf1dc;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#33332f;
+    --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#8f8d84;
+    --accent:#4fb08c; --accent-ink:#0b0b0b; --accent-soft:#1f3a30;
+    --views:#3987e5; --phones:#d95926;
+    --heat-0:#1d2530; --heat-1:#1f3a5c; --heat-2:#28568c; --heat-3:#3a78c2; --heat-4:#6aa6ec;
+    --warn:#e3a54a; --warn-soft:#3a2c14;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#33332f;
+  --ink:#ffffff; --ink-2:#c3c2b7; --ink-3:#8f8d84;
+  --accent:#4fb08c; --accent-ink:#0b0b0b; --accent-soft:#1f3a30;
+  --views:#3987e5; --phones:#d95926;
+  --heat-0:#1d2530; --heat-1:#1f3a5c; --heat-2:#28568c; --heat-3:#3a78c2; --heat-4:#6aa6ec;
+  --warn:#e3a54a; --warn-soft:#3a2c14;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+details.fbox>summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.fbox>summary::-webkit-details-marker{display:none}
+details.fbox[open]>summary{margin-bottom:10px}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:24px;margin:0;letter-spacing:-.01em}
+.sub{color:var(--ink-2);margin-top:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;background:var(--accent-soft);color:var(--ink);font-size:13px;white-space:nowrap}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.filters{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lbl{font-weight:600;min-width:96px;color:var(--ink-2);font-size:13px}
+button,select,input{font:inherit;color:inherit}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip:focus-visible,.tab:focus-visible{outline:2px solid var(--views);outline-offset:2px}
+input[type=search],input[type=date],select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;min-width:0}
+input[type=search]{flex:1 1 220px}
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:6px 12px;cursor:pointer}
+.emp-box{position:relative}
+.emp-list{position:absolute;z-index:20;top:110%;left:0;width:min(340px,90vw);max-height:340px;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.emp-list label{display:flex;gap:8px;align-items:center;padding:4px 6px;border-radius:6px;cursor:pointer}
+.emp-list label:hover{background:var(--surface-2)}
+.emp-list .muted{font-size:12px}
+.tabs{display:flex;gap:4px;margin:16px 0 10px;overflow-x:auto;padding-bottom:2px}
+.tab{border:none;background:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi .v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kpi .k{color:var(--ink-2);font-size:13px}
+.kpi .h{color:var(--ink-3);font-size:12px;margin-top:2px}
+h2{font-size:17px;margin:4px 0 10px}
+.muted{color:var(--ink-3)}
+.note{color:var(--ink-2);font-size:13px;margin:6px 0 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(520px,100%),1fr));gap:12px}
+.sec{margin-top:12px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;white-space:nowrap}
+th{font-size:12px;color:var(--ink-2);font-weight:600;position:sticky;top:0;background:var(--surface);cursor:pointer;user-select:none}
+th.num,td.num{text-align:right}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:var(--surface-2)}
+td.title{white-space:normal;min-width:220px;max-width:360px}
+.thumb{width:56px;height:42px;object-fit:cover;border-radius:6px;background:var(--surface-2);display:block}
+.badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);margin-right:3px}
+.badge.on{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+a{color:var(--views)}
+.chart{width:100%;display:block}
+.chart text{fill:var(--ink-2);font-size:11px}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.bar-v{fill:var(--views)} .bar-p{fill:var(--phones)}
+.bar-x{fill:var(--ink-3)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin:4px 0}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.heat{display:grid;gap:2px;font-size:11px}
+.heat .c{height:26px;border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--ink);font-variant-numeric:tabular-nums}
+.heat .hd{color:var(--ink-2);text-align:center}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);padding:6px 9px;border-radius:8px;font-size:12px;z-index:50;display:none;max-width:260px}
+.drawer{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:40}
+.drawer .in{position:absolute;right:0;top:0;bottom:0;width:min(560px,100%);background:var(--surface);padding:18px;overflow:auto}
+.center{padding:40px;text-align:center;color:var(--ink-2)}
+.more{margin:10px auto;display:block}
+@media (max-width:640px){ .lbl{min-width:auto;width:100%} .kpi .v{font-size:22px} h1{font-size:20px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Радар новостроек</h1>
+      <div class="sub">Кто разместил объявления, что получило внимание и когда открывали номер.</div>
+    </div>
+    <span class="pill" id="status">Загрузка…</span>
+  </header>
+
+  <details class="panel fbox" id="fbox" open><summary><span>Фильтры</span><span class="muted" id="fsum"></span></summary><section class="filters" aria-label="Фильтры">
+    <div class="row" id="periods"></div>
+    <div class="row" id="customRow" hidden>
+      <span class="lbl">Свой период</span>
+      <input type="date" id="dFrom"> — <input type="date" id="dTo">
+    </div>
+    <div class="row" id="weekdays"><span class="lbl">Дни недели</span></div>
+    <div class="row">
+      <span class="lbl">Компания</span>
+      <span id="companies"></span>
+    </div>
+    <div class="row">
+      <span class="lbl">Сотрудники</span>
+      <div class="emp-box">
+        <button class="btn" id="empBtn" aria-expanded="false">Все сотрудники ▾</button>
+        <div class="emp-list" id="empList" hidden></div>
+      </div>
+      <span class="lbl" style="min-width:auto;margin-left:8px">Комнат</span>
+      <span id="rooms"></span>
+    </div>
+    <div class="row">
+      <input type="search" id="q" placeholder="Поиск по заголовку, адресу или номеру объявления">
+      <label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="newOnly" checked> только новостройки</label>
+      <button class="btn" id="reset">Сбросить фильтры</button>
+    </div>
+  </section></details>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <main id="view"><div class="center">Загружаю данные…</div></main>
+</div>
+<div class="tip" id="tip"></div>
+<div class="drawer" id="drawer"><div class="in" id="drawerIn"></div></div>
+
+<script>
+"use strict";
+const KEY = new URLSearchParams(location.search).get("k") || "";
+const TZ_OFF = 3 * 3600 * 1000; // Минск, UTC+3
+const NIGHT = 24, SPREAD = 25;
+const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+const EV_NAMES = {new:"Новое", gone:"Снято", back:"Вернулось", raise:"Поднятие", price:"Цена", promo_hl:"Выделение", promo_pp:"Закреп вверху", promo_rb:"Ленточка", title:"Заголовок", photo:"Обложка"};
+const TABS = [["overview","Обзор"],["ads","Объявления за период"],["leaders","Лидеры"],["employees","Сотрудники"],["hours","По часам"],["promo","Продвижение"],["placed","Что размещают"],["works","Что работает"]];
+
+let CAT = null, CUBE = null, STATUS = null;
+const S = { period:"7", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"overview", sort:{}, limit:150 };
+
+const $ = s => document.querySelector(s);
+const fmt = n => n == null ? "—" : Math.round(n).toLocaleString("ru-RU");
+const fmtS = n => n >= 1e6 ? fmt1(n/1e6)+" млн" : n >= 1e4 ? fmt1(n/1e3)+" тыс" : fmt(n);
+const fmt1 = n => n == null || !isFinite(n) ? "—" : n.toLocaleString("ru-RU",{maximumFractionDigits:1});
+const pct = (a,b) => b ? (100*a/b).toLocaleString("ru-RU",{maximumFractionDigits:1})+"%" : "—";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dayStr = ms => new Date(ms + TZ_OFF).toISOString().slice(0,10);
+const todayStr = () => dayStr(Date.now());
+const addDays = (d, n) => dayStr(Date.parse(d+"T00:00:00Z") - TZ_OFF + n*86400000 + 12*3600000);
+const wdOf = d => (new Date(d+"T12:00:00Z").getUTCDay() + 6) % 7;
+const dtLocal = ts => { if(!ts) return "—"; const d = new Date(ts*1000+TZ_OFF); return d.toISOString().slice(8,10)+"."+d.toISOString().slice(5,7)+" "+d.toISOString().slice(11,16); };
+const hourOfTs = ts => new Date(ts*1000+TZ_OFF).getUTCHours();
+const dayOfTs = ts => dayStr(ts*1000);
+const roomKey = r => { const n = parseInt(r,10); return !n ? "?" : n >= 4 ? "4+" : String(n); };
+
+async function getJSON(name){
+  const r = await fetch(`/d/${name}?k=${encodeURIComponent(KEY)}`, {cache:"no-store"});
+  if(!r.ok) throw new Error(name+": "+r.status);
+  return r.json();
+}
+
+// ---------- сотрудники
+function empKey(a){ return a.pid ? "p:"+a.pid : a.cn ? "c:"+a.cn : "u"; }
+function empName(key){
+  if(key === "u") return "Не определён";
+  if(key.startsWith("p:")){ const p = CAT.profiles[key.slice(2)]; return (p && p.name) ? p.name : "Профиль "+key.slice(2); }
+  return key.slice(2)+" (не подтверждён)";
+}
+function empCompany(key){
+  if(key.startsWith("p:")){ const p = CAT.profiles[key.slice(2)]; return p ? p.company : ""; }
+  return "";
+}
+
+// ---------- фильтры
+function periodDays(){
+  const t = todayStr();
+  let from, to = t;
+  if(S.period === "today") from = t;
+  else if(S.period === "yesterday"){ from = addDays(t,-1); to = from; }
+  else if(S.period === "custom"){ from = S.from || t; to = S.to || t; }
+  else if(S.period === "all"){ const ks = Object.keys(CUBE.days).sort(); from = ks[0] || t; }
+  else from = addDays(t, -(parseInt(S.period,10)-1));
+  if(from > to) [from, to] = [to, from];
+  const out = [];
+  for(let d = from; d <= to; d = addDays(d,1)){ if(!S.wd.size || S.wd.has(wdOf(d))) out.push(d); if(out.length > 400) break; }
+  return out;
+}
+function adOk(id, a){
+  if(!a) return false;
+  if(S.newOnly && !a.nw) return false;
+  if(S.company !== "all" && a.c !== S.company) return false;
+  if(S.emps.size && !S.emps.has(empKey(a))) return false;
+  if(S.rooms.size && !S.rooms.has(roomKey(a.r))) return false;
+  if(S.q){
+    const q = S.q.toLowerCase();
+    if(!(id.includes(q) || (a.t||"").toLowerCase().includes(q) || (a.ad||"").toLowerCase().includes(q))) return false;
+  }
+  return true;
+}
+function vhOk(pid, rooms){
+  if(S.rooms.size && !S.rooms.has(roomKey(rooms))) return false;
+  if(S.emps.size && !S.emps.has("p:"+pid)) return false;
+  if(S.company !== "all"){ const p = CAT.profiles[pid]; if(!p || p.company !== S.company) return false; }
+  return true;
+}
+
+// ---------- агрегирование выбранного периода
+function aggregate(){
+  const days = periodDays();
+  const ads = CAT.ads;
+  const per = new Map();   // id -> {dv,dp,ev:[]}
+  const byDay = [];        // [{d,dv,dp}]
+  const phHour = new Array(26).fill(0), vHour = new Array(26).fill(0);
+  const heat = Array.from({length:7}, () => new Array(24).fill(0));
+  const heatV = Array.from({length:7}, () => new Array(24).fill(0));
+  const events = [];
+  const covHour = new Array(26).fill(0);
+  const ok = id => adOk(id, ads[id]);
+  for(const d of days){
+    const D = CUBE.days[d]; let dv = 0, dp = 0;
+    if(D){
+      for(const id in D.a){ if(!ok(id)) continue; const [v,p] = D.a[id]; dv += v; dp += p;
+        const x = per.get(id) || {dv:0,dp:0,ev:[]}; x.dv += v; x.dp += p; per.set(id,x); }
+      for(const [id,h,n] of D.ph){ if(!ok(id)) continue; phHour[h] += n; if(h < 24) heat[wdOf(d)][h] += n; }
+      for(const [pid,r,h,n] of D.vh){ if(!vhOk(pid,r)) continue; vHour[h] += n; if(h < 24) heatV[wdOf(d)][h] += n; }
+      for(const e of D.ev){ if(!ok(e[1])) continue; events.push(e); const x = per.get(e[1]) || {dv:0,dp:0,ev:[]}; x.ev.push(e); per.set(e[1], x); }
+      for(const h in (D.cov||{})) covHour[h] += D.cov[h];
+    }
+    byDay.push({d, dv, dp});
+  }
+  return {days, per, byDay, phHour, vHour, heat, heatV, events, covHour};
+}
+
+// ---------- графики (SVG)
+function barChart(values, labels, cls, opts={}){
+  const W = opts.w || (innerWidth < 640 ? 360 : 560), H = opts.h || (innerWidth < 640 ? 200 : 190), pl = 44, pb = 22, pt = 8;
+  const max = Math.max(1, ...values);
+  const n = values.length, bw = (W-pl-6)/n, gap = Math.min(4, bw*0.25);
+  const nice = niceMax(max), ticks = [0, nice/2, nice];
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.title||"")}">`;
+  for(const t of ticks){ const y = pt + (H-pt-pb)*(1-t/nice); s += `<line class="grid" x1="${pl}" x2="${W}" y1="${y}" y2="${y}"/><text x="${pl-6}" y="${y+4}" text-anchor="end">${fmtS(t)}</text>`; }
+  values.forEach((v,i) => {
+    const h = (H-pt-pb)*v/nice, x = pl + i*bw + gap/2, y = H-pb-h, w = Math.max(1,bw-gap);
+    const c = (opts.special && opts.special(i)) ? "bar-x" : cls;
+    if(v > 0) s += `<path class="${c}" d="${roundTop(x,y,w,h)}" data-tip="${esc(labels[i])}: ${fmt(v)}"/>`;
+    s += `<rect x="${pl+i*bw}" y="${pt}" width="${bw}" height="${H-pt-pb}" fill="transparent" data-tip="${esc(labels[i])}: ${fmt(v)}"/>`;
+    const every = Math.ceil(n/(innerWidth < 640 ? 9 : 14));
+    if(i % every === 0) s += `<text x="${x+w/2}" y="${H-6}" text-anchor="middle">${esc(opts.short ? opts.short(i) : labels[i])}</text>`;
+  });
+  return s + `</svg>`;
+}
+function roundTop(x,y,w,h){ const r = Math.min(4, w/2, h); return `M${x},${y+h} V${y+r} Q${x},${y} ${x+r},${y} H${x+w-r} Q${x+w},${y} ${x+w},${y+r} V${y+h} Z`; }
+function niceMax(m){ const p = Math.pow(10, Math.floor(Math.log10(m))); for(const k of [1,2,2.5,5,10]) if(k*p >= m) return k*p; return 10*p; }
+
+function heatmap(grid, title){
+  const H0 = 7;
+  const max2 = Math.max(1, ...grid.flatMap(r => r.slice(H0)));
+  let s = `<div style="overflow-x:auto"><div class="heat" style="grid-template-columns:28px repeat(${24-H0},minmax(26px,1fr));min-width:520px" role="table" aria-label="${esc(title)}"><div></div>`;
+  for(let h=H0; h<24; h++) s += `<div class="hd">${h}</div>`;
+  grid.forEach((row,w) => {
+    s += `<div class="hd" style="text-align:left">${WD[w]}</div>`;
+    row.slice(H0).forEach((v,i) => { const h = i + H0; const max = max2; const lvl = v ? Math.min(4, Math.ceil(4*v/max)) : 0;
+      s += `<div class="c" style="background:var(--heat-${lvl});${lvl>=3?"color:#fff":""}" data-tip="${WD[w]}, ${h}:00–${h+1}:00 — ${fmt(v)}">${v ? fmt(v) : ""}</div>`; });
+  });
+  return s + `</div></div>`;
+}
+
+// ---------- представления
+function kpi(v,k,h){ return `<div class="kpi"><div class="v">${v}</div><div class="k">${k}</div>${h?`<div class="h">${h}</div>`:""}</div>`; }
+
+function viewOverview(A){
+  const ads = CAT.ads;
+  let dv=0, dp=0; for(const x of A.per.values()){ dv += x.dv; dp += x.dp; }
+  const active = Object.entries(ads).filter(([id,a]) => a.act && adOk(id,a)).length;
+  const cnt = t => A.events.filter(e => e[2] === t).length;
+  const promoOn = A.events.filter(e => e[2].startsWith("promo_") && e[4]).length;
+  const labels = A.byDay.map(x => x.d.slice(8,10)+"."+x.d.slice(5,7));
+  return `<div class="kpis">
+    ${kpi(fmt(dv),"Прирост просмотров","за выбранный период")}
+    ${kpi(fmt(dp),"Открытий номера","не звонки — Kufar считает показы телефона")}
+    ${kpi(pct(dp,dv),"Открытий на просмотр","конверсия просмотра в открытие номера")}
+    ${kpi(fmt(active),"Активных сейчас","по последнему обходу")}
+    ${kpi(fmt(cnt("new")),"Новых объявлений","за период")}
+    ${kpi(fmt(cnt("raise")),"Поднятий","смена даты размещения")}
+    ${kpi(fmt(promoOn),"Включений продвижения","выделение, закреп, ленточки")}
+  </div>
+  <div class="grid2">
+    <div class="panel"><h2>Прирост просмотров по дням</h2>${barChart(A.byDay.map(x=>x.dv), labels, "bar-v", {title:"Просмотры по дням"})}</div>
+    <div class="panel"><h2>Открытия номера по дням</h2>${barChart(A.byDay.map(x=>x.dp), labels, "bar-p", {title:"Открытия номера по дням"})}</div>
+  </div>
+  <p class="note">Данные собираются каждый час с 7:00 до 23:00 по Минску. Прирост за ночь виден утром отдельной строкой во вкладке «По часам».</p>`;
+}
+
+function adRows(A, onlyWithActivity){
+  const ads = CAT.ads, rows = [];
+  const ids = onlyWithActivity ? [...A.per.keys()] : Object.keys(ads).filter(id => adOk(id, ads[id]) && (ads[id].act || A.per.has(id)));
+  for(const id of ids){
+    const a = ads[id]; if(!a || !adOk(id,a)) continue;
+    const x = A.per.get(id) || {dv:0,dp:0,ev:[]};
+    const raises = x.ev.filter(e => e[2]==="raise").length;
+    const promo = x.ev.some(e => e[2].startsWith("promo_") && e[4]) || a.hl || a.pp || a.rb;
+    rows.push({id, a, dv:x.dv, dp:x.dp, conv: x.dv ? x.dp/x.dv : 0, raises, promo,
+      emp: empName(empKey(a)), ppm: a.pu && a.a ? a.pu/a.a : null, placed: a.lt0 || a.lt || a.fs});
+  }
+  return rows;
+}
+function sortRows(rows, tab, def){
+  const st = S.sort[tab] || def;
+  const k = st.key, dir = st.dir;
+  rows.sort((x,y) => { const a = x[k] ?? -Infinity, b = y[k] ?? -Infinity; return (a > b ? 1 : a < b ? -1 : 0) * dir; });
+  return rows;
+}
+function th(tab, key, label, num){
+  const st = S.sort[tab]; const mark = st && st.key === key ? (st.dir > 0 ? " ▲" : " ▼") : "";
+  return `<th class="${num?"num":""}" data-sort="${tab}:${key}">${label}${mark}</th>`;
+}
+function promoBadges(a){
+  let s = "";
+  if(a.hl) s += `<span class="badge on">выделение</span>`;
+  if(a.pp) s += `<span class="badge on">закреп</span>`;
+  if(a.rb) s += `<span class="badge on">ленточка</span>`;
+  return s || `<span class="muted">—</span>`;
+}
+function adTable(rows, tab){
+  const shown = rows.slice(0, S.limit);
+  let s = `<div class="tbl-wrap"><table><thead><tr><th></th><th>Объявление</th>${th(tab,"emp","Сотрудник")}${th(tab,"r","Комн.",1)}
+    ${th(tab,"area","м²",1)}${th(tab,"price","Цена $",1)}${th(tab,"ppm","$/м²",1)}${th(tab,"dv","+Просмотры",1)}${th(tab,"dp","+Откр. номера",1)}
+    ${th(tab,"conv","Конверсия",1)}${th(tab,"raises","Поднятий",1)}<th>Продвижение сейчас</th>${th(tab,"placed","Размещено",1)}</tr></thead><tbody>`;
+  for(const r of shown){
+    const a = r.a;
+    s += `<tr class="clickable" data-ad="${r.id}"><td>${a.img?`<img class="thumb" loading="lazy" src="${esc(a.img)}" alt="">`:""}</td>
+      <td class="title">${esc(a.t)}<div class="muted" style="font-size:12px">${esc(a.ad||"")}${a.act?"":" · снято"}</div></td>
+      <td>${esc(r.emp)}</td><td class="num">${esc(a.r||"")}</td><td class="num">${fmt1(a.a)}</td><td class="num">${fmt(a.pu)}</td><td class="num">${fmt(r.ppm)}</td>
+      <td class="num">${fmt(r.dv)}</td><td class="num">${fmt(r.dp)}</td><td class="num">${r.dv?pct(r.dp,r.dv):"—"}</td><td class="num">${r.raises||""}</td>
+      <td>${promoBadges(a)}</td><td class="num">${dtLocal(r.placed)}</td></tr>`;
+  }
+  s += `</tbody></table></div>`;
+  if(rows.length > S.limit) s += `<button class="btn more" data-more="1">Показать ещё (${rows.length - S.limit})</button>`;
+  return s;
+}
+function withSortKeys(rows){ rows.forEach(r => { r.r = parseInt(r.a.r,10)||0; r.area = r.a.a||0; r.price = r.a.pu||0; }); return rows; }
+
+function viewAds(A){
+  const rows = sortRows(withSortKeys(adRows(A,false)), "ads", {key:"dp", dir:-1});
+  return `<h2>Объявления за период · ${fmt(rows.length)}</h2>${adTable(rows,"ads")}
+  <p class="note">В списке активные объявления и те, у которых были просмотры или события в периоде. Нажмите на строку, чтобы увидеть историю по дням.</p>`;
+}
+function viewLeaders(A){
+  const rows = sortRows(withSortKeys(adRows(A,true)).filter(r => r.dv || r.dp), "leaders", {key:"dp", dir:-1});
+  return `<h2>Лидеры по открытиям номера</h2>${adTable(rows,"leaders")}
+  <p class="note">Сортировка по любому столбцу — нажмите на заголовок.</p>`;
+}
+
+function viewEmployees(A){
+  const ads = CAT.ads, m = new Map();
+  const get = k => { if(!m.has(k)) m.set(k,{k, name:empName(k), company:"", active:0, newc:0, dv:0, dp:0, raises:0, promo:0, ph:new Array(24).fill(0)}); return m.get(k); };
+  for(const [id,a] of Object.entries(ads)){ if(!adOk(id,a)) continue; const e = get(empKey(a)); e.company = CAT.companies[a.c]||""; if(a.act) e.active++; }
+  for(const [id,x] of A.per){ const a = ads[id]; const e = get(empKey(a)); e.dv += x.dv; e.dp += x.dp;
+    for(const ev of x.ev){ if(ev[2]==="new") e.newc++; if(ev[2]==="raise") e.raises++; if(ev[2].startsWith("promo_") && ev[4]) e.promo++; } }
+  for(const d of A.days){ const D = CUBE.days[d]; if(!D) continue; for(const [id,h,n] of D.ph){ const a = ads[id]; if(!adOk(id,a) || h>23) continue; get(empKey(a)).ph[h] += n; } }
+  const rows = [...m.values()].map(e => { const best = e.ph.indexOf(Math.max(...e.ph)); return {...e, perAd: e.active ? e.dp/e.active : 0, conv: e.dv ? e.dp/e.dv : 0, best: Math.max(...e.ph) ? best : -1}; });
+  sortRows(rows, "employees", {key:"dp", dir:-1});
+  let s = `<h2>Результаты сотрудников</h2><div class="tbl-wrap"><table><thead><tr>${th("employees","name","Сотрудник")}${th("employees","company","Компания")}
+    ${th("employees","active","Активных",1)}${th("employees","newc","Новых",1)}${th("employees","dv","+Просмотры",1)}${th("employees","dp","+Откр. номера",1)}
+    ${th("employees","perAd","Откр. на объявление",1)}${th("employees","conv","Конверсия",1)}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead><tbody>`;
+  for(const e of rows){ s += `<tr class="clickable" data-emp="${esc(e.k)}"><td>${esc(e.name)}</td><td>${esc(e.company)}</td><td class="num">${fmt(e.active)}</td><td class="num">${fmt(e.newc)}</td>
+    <td class="num">${fmt(e.dv)}</td><td class="num">${fmt(e.dp)}</td><td class="num">${fmt1(e.perAd)}</td><td class="num">${e.dv?pct(e.dp,e.dv):"—"}</td>
+    <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`; }
+  return s + `</tbody></table></div><p class="note">Нажмите на сотрудника, чтобы отфильтровать дашборд по нему. «Не подтверждён» — имя из объявления, профиль продавца ещё уточняется.</p>`;
+}
+
+function viewHours(A){
+  const hrs = [...Array(17).keys()].map(i => i+7);          // 7..23
+  const labels = ["Ночь (23:00–7:00)", ...hrs.map(h => `${h}:00–${h+1}:00`)];
+  const short = i => i === 0 ? "ночь" : hrs[i-1];
+  const night = arr => arr[NIGHT] + arr.slice(0,7).reduce((a,b)=>a+b,0);   // в старых данных были и ночные часы
+  const ph = [night(A.phHour), ...hrs.map(h => A.phHour[h])];
+  const vh = [night(A.vHour), ...hrs.map(h => A.vHour[h])];
+  const total = ph.reduce((a,b)=>a+b,0) + A.phHour[SPREAD];
+  const best = hrs[hrs.map(h=>A.phHour[h]).indexOf(Math.max(...hrs.map(h=>A.phHour[h])))];
+  return `<div class="kpis">
+    ${kpi(Math.max(...hrs.map(h=>A.phHour[h])) ? best+":00–"+(best+1)+":00" : "—","Час, когда чаще всего открывают номер","по выбранным фильтрам")}
+    ${kpi(fmt(ph[0]),"Открытий номера за ночь","между 23:00 и 7:00, видны утром")}
+    ${kpi(fmt(A.phHour[SPREAD]),"Открытий, час не определён",`${pct(A.phHour[SPREAD], total)} от всех — объявления, которые замеряются раз в несколько часов`)}
+  </div>
+  <div class="grid2">
+    <div class="panel"><h2>Открытия номера по часу</h2>${barChart(ph, labels, "bar-p", {title:"Открытия номера по часам", short, special:i=>i===0})}</div>
+    <div class="panel"><h2>Прирост просмотров по часу</h2>${barChart(vh, labels, "bar-v", {title:"Просмотры по часам", short, special:i=>i===0})}</div>
+  </div>
+  <div class="panel sec"><h2>Открытия номера: день недели × час</h2>${heatmap(A.heat,"Открытия номера по дням недели и часам")}</div>
+  <div class="panel sec"><h2>Просмотры: день недели × час</h2>${heatmap(A.heatV,"Просмотры по дням недели и часам")}</div>
+  <p class="note">Час — середина интервала между двумя замерами (замер каждый час с 7 до 23). Серый столбец — всё, что накопилось за ночь. Просмотры по часам учитывают фильтры компании, сотрудника и комнатности; поиск и «только новостройки» на них не действуют.</p>`;
+}
+
+function viewPromo(A){
+  const ads = CAT.ads;
+  const promo = A.events.filter(e => e[2].startsWith("promo_") || e[2] === "raise").sort((a,b) => b[0]-a[0]);
+  const dayA = (d,id) => { const D = CUBE.days[d]; return D && D.a[id] ? D.a[id] : [0,0]; };
+  let s = `<h2>Продвижение и поднятия · ${fmt(promo.length)}</h2><div class="tbl-wrap"><table><thead><tr><th>Когда</th><th>Что</th><th>Объявление</th><th>Сотрудник</th>
+    <th class="num">Просм. накануне</th><th class="num">Просм. в день</th><th class="num">Просм. на след. день</th><th class="num">Откр. накануне</th><th class="num">Откр. в день</th><th class="num">Откр. на след. день</th></tr></thead><tbody>`;
+  for(const e of promo.slice(0, S.limit)){
+    const a = ads[e[1]] || {}; const d = dayOfTs(e[0]);
+    const b = dayA(addDays(d,-1), e[1]), c = dayA(d, e[1]), n = dayA(addDays(d,1), e[1]);
+    const what = EV_NAMES[e[2]] + (e[2].startsWith("promo_") ? (e[4] ? " — включено" : " — выключено") : "");
+    s += `<tr class="clickable" data-ad="${e[1]}"><td>${dtLocal(e[0])}</td><td>${esc(what)}</td><td class="title">${esc(a.t||e[1])}</td><td>${esc(empName(empKey(a)))}</td>
+      <td class="num">${fmt(b[0])}</td><td class="num">${fmt(c[0])}</td><td class="num">${fmt(n[0])}</td><td class="num">${fmt(b[1])}</td><td class="num">${fmt(c[1])}</td><td class="num">${fmt(n[1])}</td></tr>`;
+  }
+  s += `</tbody></table></div>`;
+  if(promo.length > S.limit) s += `<button class="btn more" data-more="1">Показать ещё</button>`;
+  return s + `<p class="note">Продвижение видно по меткам в выдаче Kufar в момент обхода (раз в час). «Не увидели» не значит «точно не было». Сравнение по суткам — ориентир, а не доказательство эффекта.</p>`;
+}
+
+function viewPlaced(A){
+  const ads = CAT.ads;
+  const news = A.events.filter(e => e[2]==="new").map(e => [e, ads[e[1]]]).filter(x => x[1]);
+  const byRooms = new Map(), byArea = new Map(), byWd = new Array(7).fill(0), byHour = new Array(24).fill(0), byEmp = new Map();
+  for(const [e,a] of news){
+    const rk = roomKey(a.r); byRooms.set(rk, (byRooms.get(rk)||0)+1);
+    const ak = a.a ? (a.a < 40 ? "до 40" : a.a < 55 ? "40–55" : a.a < 70 ? "55–70" : a.a < 90 ? "70–90" : "90+") : "?"; byArea.set(ak,(byArea.get(ak)||0)+1);
+    const t = a.lt0 || e[0]; byWd[(new Date(t*1000+TZ_OFF).getUTCDay()+6)%7]++; byHour[hourOfTs(t)]++;
+    const en = empName(empKey(a)); byEmp.set(en,(byEmp.get(en)||0)+1);
+  }
+  const order = (m, keys) => keys.filter(k => m.has(k)).map(k => [k, m.get(k)]);
+  const rk = order(byRooms, ["1","2","3","4+","?"]), ak = order(byArea, ["до 40","40–55","55–70","70–90","90+","?"]);
+  const emp = [...byEmp].sort((a,b)=>b[1]-a[1]).slice(0,15);
+  return `<div class="kpis">${kpi(fmt(news.length),"Новых объявлений","за выбранный период")}</div>
+  <div class="grid2">
+    <div class="panel"><h2>Комнатность новых</h2>${barChart(rk.map(x=>x[1]), rk.map(x=>x[0]+" комн."), "bar-v", {short:i=>rk[i][0]})}</div>
+    <div class="panel"><h2>Площадь новых, м²</h2>${barChart(ak.map(x=>x[1]), ak.map(x=>x[0]+" м²"), "bar-v", {short:i=>ak[i][0]})}</div>
+    <div class="panel"><h2>День недели размещения</h2>${barChart(byWd, WD, "bar-v")}</div>
+    <div class="panel"><h2>Час размещения</h2>${barChart(byHour, [...Array(24).keys()].map(h=>h+":00"), "bar-v", {short:i=>i})}</div>
+  </div>
+  <div class="panel sec"><h2>Кто размещал больше</h2>${barChart(emp.map(x=>x[1]), emp.map(x=>x[0]), "bar-v", {h:220, short:i=>emp[i][0].split(" ")[0]})}</div>`;
+}
+
+function viewWorks(A){
+  const rows = withSortKeys(adRows(A,true)).filter(r => !r.raises && !r.promo && (r.dv||r.dp));
+  sortRows(rows, "works", {key:"dp", dir:-1});
+  const group = (fn, keys) => { const m = new Map(); for(const r of rows){ const k = fn(r); const g = m.get(k)||{n:0,dv:0,dp:0}; g.n++; g.dv+=r.dv; g.dp+=r.dp; m.set(k,g); } return keys.filter(k=>m.has(k)).map(k=>[k,m.get(k)]); };
+  const byRooms = group(r => roomKey(r.a.r), ["1","2","3","4+","?"]);
+  const byPrice = group(r => !r.ppm ? "?" : r.ppm < 1300 ? "до 1300" : r.ppm < 1500 ? "1300–1500" : r.ppm < 1700 ? "1500–1700" : "1700+", ["до 1300","1300–1500","1500–1700","1700+","?"]);
+  const tbl = (title, g) => `<div class="panel"><h2>${title}</h2><div class="tbl-wrap"><table><thead><tr><th>Группа</th><th class="num">Объявлений</th><th class="num">Откр. на объявление</th><th class="num">Просм. на объявление</th><th class="num">Конверсия</th></tr></thead><tbody>
+    ${g.map(([k,v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v.n)}</td><td class="num">${fmt1(v.dp/v.n)}</td><td class="num">${fmt1(v.dv/v.n)}</td><td class="num">${pct(v.dp,v.dv)}</td></tr>`).join("")}</tbody></table></div></div>`;
+  return `<h2>Чистая органика</h2><p class="note" style="margin-top:-4px">Объявления без продвижения и без поднятий в выбранном периоде: что даёт результат само по себе.</p>
+  <div class="grid2 sec">${tbl("По комнатности", byRooms)}${tbl("По цене за м², $", byPrice)}</div>
+  <h2 class="sec">ТОП органики</h2>${adTable(rows,"works")}`;
+}
+
+// ---------- карточка объявления
+function openAd(id){
+  const a = CAT.ads[id]; if(!a) return;
+  const keys = Object.keys(CUBE.days).sort();
+  const series = keys.map(d => [d, (CUBE.days[d].a[id]||[0,0])]);
+  const evs = keys.flatMap(d => CUBE.days[d].ev.filter(e => e[1]===id)).sort((x,y)=>y[0]-x[0]);
+  const lab = series.map(x => x[0].slice(8,10)+"."+x[0].slice(5,7));
+  $("#drawerIn").innerHTML = `<button class="btn" id="closeDrawer" style="float:right">Закрыть</button>
+    <h2 style="margin-right:90px">${esc(a.t)}</h2>
+    ${a.img?`<img src="${esc(a.img)}" alt="" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px">`:""}
+    <p>${esc(a.ad||"")}<br>${esc(empName(empKey(a)))} · ${esc(CAT.companies[a.c]||"")}<br>
+    ${esc(a.r||"?")} комн. · ${fmt1(a.a)} м² · этаж ${esc(a.fl||"?")}/${esc(a.ft||"?")} · ${fmt(a.pu)} $ · ${a.pu&&a.a?fmt(a.pu/a.a)+" $/м²":""}<br>
+    Размещено: ${dtLocal(a.lt0||a.lt)} · последнее поднятие: ${dtLocal(a.lt)} · всего просмотров: ${fmt(a.v)} · открытий номера: ${fmt(a.p)}<br>
+    ${promoBadges(a)} ${a.act?"":"<b>Снято с публикации</b>"}</p>
+    <p><a href="https://re.kufar.by/vi/${esc(id)}" target="_blank" rel="noopener noreferrer">Открыть на Kufar ↗</a></p>
+    <h2>Просмотры по дням</h2>${barChart(series.map(x=>x[1][0]), lab, "bar-v")}
+    <h2>Открытия номера по дням</h2>${barChart(series.map(x=>x[1][1]), lab, "bar-p")}
+    <h2>События</h2>${evs.length ? `<table><tbody>${evs.map(e=>`<tr><td>${dtLocal(e[0])}</td><td>${esc(EV_NAMES[e[2]]||e[2])}</td><td class="muted">${e[2]==="price"?fmt(e[3])+" → "+fmt(e[4])+" $":e[2]==="raise"?dtLocal(e[3])+" → "+dtLocal(e[4]):""}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Событий пока нет.</p>`}`;
+  $("#drawer").style.display = "block";
+}
+
+// ---------- отрисовка
+function render(){
+  const A = aggregate();
+  const V = {overview:viewOverview, ads:viewAds, leaders:viewLeaders, employees:viewEmployees, hours:viewHours, promo:viewPromo, placed:viewPlaced, works:viewWorks}[S.tab];
+  $("#view").innerHTML = V(A);
+  renderControls();
+}
+function renderControls(){
+  const P = [["today","Сегодня"],["yesterday","Вчера"],["7","7 дней"],["30","30 дней"],["90","90 дней"],["all","Всё время"],["custom","Свой период"]];
+  $("#periods").innerHTML = `<span class="lbl">Период</span>` + P.map(([k,l]) => `<button class="chip" data-period="${k}" aria-pressed="${S.period===k}">${l}</button>`).join("");
+  $("#customRow").hidden = S.period !== "custom";
+  $("#weekdays").innerHTML = `<span class="lbl">Дни недели</span>` + WD.map((w,i) => `<button class="chip" data-wd="${i}" aria-pressed="${S.wd.has(i)}">${w}</button>`).join("");
+  $("#companies").innerHTML = [["all","Все"], ...Object.entries(CAT.companies)].map(([k,l]) => `<button class="chip" data-company="${k}" aria-pressed="${S.company===k}">${esc(l)}</button>`).join(" ");
+  $("#rooms").innerHTML = ["1","2","3","4+"].map(r => `<button class="chip" data-room="${r}" aria-pressed="${S.rooms.has(r)}">${r}</button>`).join(" ");
+  $("#tabs").innerHTML = TABS.map(([k,l]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join("");
+  const P2 = Object.fromEntries(P);
+  $("#fsum").textContent = [P2[S.period], S.company!=="all" ? CAT.companies[S.company] : "", S.emps.size ? "сотрудников: "+S.emps.size : "", S.rooms.size ? [...S.rooms].join(",")+" комн." : "", S.wd.size ? [...S.wd].sort().map(i=>WD[i]).join(",") : ""].filter(Boolean).join(" · ");
+  $("#empBtn").textContent = (S.emps.size ? `Выбрано: ${S.emps.size}` : "Все сотрудники") + " ▾";
+}
+function renderEmpList(){
+  const counts = new Map();
+  for(const [id,a] of Object.entries(CAT.ads)){ if(!a.act) continue; if(S.company!=="all" && a.c!==S.company) continue; const k = empKey(a); counts.set(k,(counts.get(k)||0)+1); }
+  const items = [...counts].sort((a,b) => b[1]-a[1]);
+  $("#empList").innerHTML = `<input type="search" id="empQ" placeholder="Найти сотрудника" style="width:100%;margin-bottom:6px">
+    <div id="empItems">${items.map(([k,n]) => `<label data-name="${esc(empName(k).toLowerCase())}"><input type="checkbox" data-emp-k="${esc(k)}" ${S.emps.has(k)?"checked":""}> ${esc(empName(k))} <span class="muted">${n}</span></label>`).join("")}</div>
+    <button class="btn" id="empClear" style="margin-top:6px">Снять выбор</button>`;
+}
+
+// ---------- события интерфейса
+document.addEventListener("click", ev => {
+  const t = ev.target.closest("[data-period],[data-wd],[data-company],[data-room],[data-tab],[data-sort],[data-ad],[data-emp],[data-more],#reset,#empBtn,#empClear,#closeDrawer");
+  if(!t){ if(!ev.target.closest(".emp-box")) $("#empList").hidden = true; if(ev.target.id==="drawer") $("#drawer").style.display="none"; return; }
+  if(t.dataset.period){ S.period = t.dataset.period; if(S.period==="custom" && !S.from){ S.to = todayStr(); S.from = addDays(S.to,-13); $("#dFrom").value=S.from; $("#dTo").value=S.to; } }
+  else if(t.dataset.wd){ const i = +t.dataset.wd; S.wd.has(i) ? S.wd.delete(i) : S.wd.add(i); }
+  else if(t.dataset.company){ S.company = t.dataset.company; }
+  else if(t.dataset.room){ const r = t.dataset.room; S.rooms.has(r) ? S.rooms.delete(r) : S.rooms.add(r); }
+  else if(t.dataset.tab){ S.tab = t.dataset.tab; S.limit = 150; }
+  else if(t.dataset.sort){ const [tab,key] = t.dataset.sort.split(":"); const cur = S.sort[tab]; S.sort[tab] = {key, dir: cur && cur.key===key ? -cur.dir : -1}; }
+  else if(t.dataset.ad){ openAd(t.dataset.ad); return; }
+  else if(t.dataset.emp){ S.emps = new Set([t.dataset.emp]); S.tab = "ads"; }
+  else if(t.dataset.more){ S.limit += 300; }
+  else if(t.id === "reset"){ Object.assign(S, {period:"7", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, limit:150}); $("#q").value=""; $("#newOnly").checked=true; }
+  else if(t.id === "empBtn"){ const L = $("#empList"); if(L.hidden){ renderEmpList(); L.hidden = false; } else L.hidden = true; return; }
+  else if(t.id === "empClear"){ S.emps.clear(); renderEmpList(); }
+  else if(t.id === "closeDrawer"){ $("#drawer").style.display = "none"; return; }
+  render(); saveState();
+});
+document.addEventListener("change", ev => {
+  const t = ev.target;
+  if(t.dataset && t.dataset.empK !== undefined){ t.checked ? S.emps.add(t.dataset.empK) : S.emps.delete(t.dataset.empK); render(); saveState(); return; }
+  if(t.id==="dFrom"){ S.from = t.value; render(); }
+  if(t.id==="dTo"){ S.to = t.value; render(); }
+  if(t.id==="newOnly"){ S.newOnly = t.checked; render(); saveState(); }
+});
+let qTimer;
+document.addEventListener("input", ev => {
+  if(ev.target.id === "q"){ clearTimeout(qTimer); qTimer = setTimeout(() => { S.q = ev.target.value.trim(); S.limit = 150; render(); }, 200); }
+  if(ev.target.id === "empQ"){ const q = ev.target.value.toLowerCase(); document.querySelectorAll("#empItems label").forEach(l => l.style.display = l.dataset.name.includes(q) ? "" : "none"); }
+});
+document.addEventListener("keydown", ev => { if(ev.key === "Escape"){ $("#drawer").style.display = "none"; $("#empList").hidden = true; } });
+const tip = $("#tip");
+document.addEventListener("mousemove", ev => {
+  const t = ev.target.closest && ev.target.closest("[data-tip]");
+  if(!t){ tip.style.display = "none"; return; }
+  tip.textContent = t.dataset.tip; tip.style.display = "block";
+  tip.style.left = Math.min(ev.clientX + 12, innerWidth - 270) + "px"; tip.style.top = (ev.clientY + 14) + "px";
+});
+function saveState(){ try{ localStorage.setItem("radar_f", JSON.stringify({period:S.period, tab:S.tab, company:S.company, newOnly:S.newOnly})); }catch(e){} }
+function loadState(){ try{ const x = JSON.parse(localStorage.getItem("radar_f")||"{}"); Object.assign(S, x); }catch(e){} }
+
+// ---------- старт
+(async function(){
+  loadState();
+  if(innerWidth < 640) $("#fbox").open = false;
+  $("#newOnly").checked = S.newOnly;
+  try{
+    [CAT, CUBE, STATUS] = await Promise.all([getJSON("catalog"), getJSON("cube"), getJSON("status")]);
+  }catch(e){
+    $("#view").innerHTML = `<div class="center">Не удалось загрузить данные. Проверьте ссылку или обновите страницу через минуту.</div>`;
+    $("#status").textContent = "Нет данных"; $("#status").classList.add("warn"); return;
+  }
+  const age = (Date.now()/1000 - STATUS.last_run) / 3600;
+  $("#status").textContent = "Обновлено " + dtLocal(STATUS.last_run);
+  const h = new Date(Date.now()+TZ_OFF).getUTCHours();
+  if(age > 2 && h >= 9) { $("#status").classList.add("warn"); $("#status").textContent += " — давно не обновлялось"; }
+  render();
+})();
+</script>
+</body>
+</html>

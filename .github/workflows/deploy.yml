@@ -1,0 +1,61 @@
+name: deploy-dashboard
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["worker/**", ".github/workflows/deploy.yml"]
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: pip install -q requests cryptography
+      - name: prepare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          python - <<'PY'
+          import json, os, sys
+          sys.path.insert(0, "collector")
+          from kv import KV, clean_token
+          kv = KV()
+          tok = clean_token(os.environ["CLOUDFLARE_API_TOKEN"])
+          key = os.environ.get("RADAR_KEY", "").strip()
+          if not key:
+              sys.exit("Нет ключа доступа к дашборду (RADAR_KEY)")
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write(f"CF_TOKEN={tok}\nKV_ID={kv.ns}\n")
+          print(f"::add-mask::{key}")
+          open("/tmp/radar_key", "w").write(key)
+          PY
+      - name: deploy
+        working-directory: worker
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          sed -i "s/__KV_ID__/${KV_ID}/" wrangler.toml
+          [ -n "$KV_ID" ] || { echo "::error::no KV id"; exit 1; }
+          export CLOUDFLARE_API_TOKEN="$CF_TOKEN"
+          npx --yes wrangler@4 deploy > /tmp/deploy.log 2>&1 || { tail -30 /tmp/deploy.log; echo "::error::wrangler deploy failed: $(sed 's/\x1b\[[0-9;]*m//g' /tmp/deploy.log | grep -v '^\s*$' | tail -12 | tr '\n' ' ' | cut -c1-900)"; exit 1; }
+          npx --yes wrangler@4 secret put RADAR_KEY < /tmp/radar_key > /tmp/secret.log 2>&1 || { echo "::error::secret put failed: $(tail -3 /tmp/secret.log | tr '\n' ' ')"; exit 1; }
+          SUB=$(curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" | python3 -c "import sys,json;print((json.load(sys.stdin).get('result') or {}).get('subdomain') or '')")
+          HOST="radar.$SUB.workers.dev"
+          sleep 8
+          C1=$(curl -s -o /dev/null -w "%{http_code}" "https://$HOST/")
+          C2=$(curl -s -o /dev/null -w "%{http_code}" "https://$HOST/?k=$(cat /tmp/radar_key)")
+          C3=$(curl -s -o /dev/null -w "%{http_code}" "https://$HOST/d/status?k=$(cat /tmp/radar_key)")
+          rm -f /tmp/radar_key
+          echo "::notice::host=$HOST no_key=$C1 with_key=$C2 status_data=$C3"

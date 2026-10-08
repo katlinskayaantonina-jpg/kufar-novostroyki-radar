@@ -1,0 +1,37 @@
+name: smoke
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["deploy-dashboard"]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: [".github/workflows/smoke.yml", "tools/ui_check.js"]
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check dashboard
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          K="$RADAR_KEY"
+          echo "::add-mask::$K"
+          H=https://radar.katlinskaya-antonina.workers.dev
+          for p in "/" "/?k=$K" "/d/status?k=$K" "/d/catalog?k=$K" "/d/cube?k=$K"; do
+            code=$(curl -s --compressed -o /tmp/b -w "%{http_code} %{size_download}" "$H$p")
+            body=$(head -c 300 /tmp/b | tr -d '\n' | sed "s/$K/KEY/g")
+            case "$p" in /d/status*) extra=" body=$body";; *) extra="";; esac
+            [ "${code%% *}" = "200" ] || extra=" body=$body"
+            echo "::notice::${p%%\?*} -> $code$extra"
+          done
+          echo "URL=$H/?k=$K" >> $GITHUB_ENV
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: ui check
+        run: |
+          cd tools && npm i -s playwright@1 >/dev/null 2>&1 && npx playwright install --with-deps chromium >/dev/null 2>&1
+          node ui_check.js

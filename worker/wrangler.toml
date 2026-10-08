@@ -1,0 +1,13 @@
+name = "radar"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+[[kv_namespaces]]
+binding = "DATA"
+id = "__KV_ID__"

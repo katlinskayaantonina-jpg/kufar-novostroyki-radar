@@ -1,0 +1,20 @@
+name: inspect
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["collector/inspect_data.py", ".github/workflows/inspect.yml"]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -q requests
+      - env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: python collector/inspect_data.py
