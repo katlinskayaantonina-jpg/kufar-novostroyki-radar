@@ -53,6 +53,25 @@ big = [a for a in new_today if a in by and by[a][0][1] > 30]
 out["new_with_v0_gt30"] = len(big)
 out["lt_minus_fs_hours_big"] = sorted(round(((st[a].get("lt0") or 0) - (st[a].get("fs") or 0)) / 3600, 1) for a in big)[:15]
 out["new_today_first_counts"] = sorted([(st.get(a, {}).get("p") or 0, st.get(a, {}).get("v") or 0) for a in new_today], reverse=True)[:10]
+# первые замеры действительно новых объявлений (номер выше всех вчерашних, замер в первый час)
+y = kv.get_json("raw:2026-10-07", []) or []
+maxy = max([0] + [int(r[0]) for r in y])
+fm = []
+for aid, seq in by.items():
+    a = st.get(aid, {})
+    if int(aid) > maxy and a.get("lt0"):
+        seq.sort(); t, v, p = seq[0]
+        fm.append(((t - a["lt0"]) / 60, v, p))
+fm.sort()
+import statistics as S
+out["genuine_new"] = len(fm)
+if fm:
+    out["first_meas_minutes_median"] = round(S.median(x[0] for x in fm))
+    out["first_v_median_mean_max"] = [S.median(x[1] for x in fm), round(S.mean(x[1] for x in fm), 1), max(x[1] for x in fm)]
+    out["first_p_median_mean_max"] = [S.median(x[2] for x in fm), round(S.mean(x[2] for x in fm), 1), max(x[2] for x in fm)]
+    out["first_v_buckets"] = dict(Counter("0" if x[1] == 0 else "1-5" if x[1] <= 5 else "6-20" if x[1] <= 20 else "21-50" if x[1] <= 50 else "50+" for x in fm))
+    out["first_p_buckets"] = dict(Counter("0" if x[2] == 0 else "1-2" if x[2] <= 2 else "3-5" if x[2] <= 5 else "6-20" if x[2] <= 20 else "20+" for x in fm))
+    out["sample_min_v_p"] = [(round(x[0]), x[1], x[2]) for x in fm[:: max(1, len(fm)//15)]]
 s = json.dumps(out, ensure_ascii=False)
 for i in range(0, len(s), 900):
     print(f"::notice title=c{i//900}::{s[i:i+900]}")
