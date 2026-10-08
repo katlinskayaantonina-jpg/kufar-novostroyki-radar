@@ -41,6 +41,17 @@ out["cube_today"] = {"dv": sum(x[0] for x in D.get("a", {}).values()), "dp": sum
 # новые объявления сегодня: сколько записано на «с нуля»
 new_today = [e[1] for e in D.get("ev", []) if e[2] == "new"]
 out["new_today"] = len(new_today)
+firsts = [by[a][0] for a in new_today if a in by]
+for a in new_today:
+    if a in by: by[a].sort()
+firsts = [by[a][0] for a in new_today if a in by]
+out["new_first_sum_v_p"] = [sum(x[1] for x in firsts), sum(x[2] for x in firsts), len(firsts)]
+ids_sorted = sorted(int(a) for a in st)
+newids = sorted(int(a) for a in new_today)
+out["new_id_rank_pct"] = [round(sum(1 for x in ids_sorted if x < n) / len(ids_sorted), 3) for n in newids[:: max(1, len(newids)//10)]]
+big = [a for a in new_today if a in by and by[a][0][1] > 30]
+out["new_with_v0_gt30"] = len(big)
+out["lt_minus_fs_hours_big"] = sorted(round(((st[a].get("lt0") or 0) - (st[a].get("fs") or 0)) / 3600, 1) for a in big)[:15]
 out["new_today_first_counts"] = sorted([(st.get(a, {}).get("p") or 0, st.get(a, {}).get("v") or 0) for a in new_today], reverse=True)[:10]
 s = json.dumps(out, ensure_ascii=False)
 for i in range(0, len(s), 900):
