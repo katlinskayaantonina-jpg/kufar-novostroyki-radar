@@ -56,6 +56,22 @@ def main():
            "cube_old_dv_dp": [sum(x[0] for x in cube_old), sum(x[1] for x in cube_old)],
            "raw_old_ads_measured": len(by), "steps": steps, "down_steps": down_steps, "ads_with_down": ads_down,
            "sum_positive_dv_dp": [pos_v, pos_p], "net_max_minus_first_dv_dp": [net_v, net_p]}
+    per = [(max(p for _, _, p in q) - q[0][2], max(v for _, v, _ in q) - q[0][1]) for q in by.values()]
+    out["ads_dp_dist"] = dict(sorted(Counter(min(x[0], 6) for x in per).items()))
+    out["ads_dv_dist"] = dict(sorted(Counter(min(x[1], 6) for x in per).items()))
+    out["dp_without_dv_ads"] = sum(1 for dp, dv in per if dp > 0 and dv == 0)
+    out["dp_ge_dv_ads"] = sum(1 for dp, dv in per if dp > 0 and dp >= dv)
+    hp = Counter(); hv = Counter(); same_step = Counter()
+    for q in by.values():
+        for (t0, v0, p0), (t1, v1, p1) in zip(q, q[1:]):
+            h = datetime.fromtimestamp((t0 + t1) / 2, MSK).hour if t1 - t0 < 5400 else 99
+            hp[h] += p1 - p0; hv[h] += v1 - v0
+            if p1 > p0: same_step["p_up"] += 1; same_step["p_up_v_up"] += v1 > v0
+    out["hour_dp"] = dict(sorted(hp.items())); out["hour_dv"] = dict(sorted(hv.items())); out["steps_p"] = dict(same_step)
+    nb = defaultdict(list)
+    for aid, ts, v, p in raw:
+        if aid in mine and aid not in old: nb[aid].append((ts, v, p))
+    out["new_ads_dv_dp"] = [sum(max(v for _, v, _ in q) - min(v for _, v, _ in q) for q in nb.values()), sum(max(p for _, _, p in q) - min(p for _, _, p in q) for q in nb.values())]
     note("vero", out)
     note("vero_osc", osc)
     # все объявления за день: насколько сумма плюсов больше реального прироста
@@ -73,6 +89,7 @@ def main():
         np_ += max(p for _, _, p in seq) - seq[0][2]
     note("all", {"ads": len(allby), "steps": st, "down_steps": dsteps, "pos_dv_dp": [pv, pp], "net_dv_dp": [nv, np_]})
     # живая проверка: 15 старых объявлений, 8 запросов подряд с паузой 5 сек
+    return
     sample = sorted(old)[:15]
     live = []
     for a in sample:
