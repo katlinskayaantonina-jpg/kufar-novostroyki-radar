@@ -283,6 +283,29 @@ function vhOk(pid, rooms){
   return true;
 }
 
+// ---------- фильтр робота
+// Робот каждый день обходит объявления и в каждом один раз открывает страницу и номер.
+// На объявлениях, размещённых раньше этого дня, одно «+1 просмотр, +1 открытие» в день считаем роботом.
+function removeRobot(){
+  for(const [d,D] of Object.entries(CUBE.days)){
+    const start = Date.parse(d+"T00:00:00+03:00")/1000;
+    D.bot = {};
+    for(const id in (D.a||{})){
+      const a = CAT.ads[id]; if(!a) continue;
+      const placed = a.lt0 || a.fs || a.lt;
+      const [v,p] = D.a[id];
+      if(!placed || placed >= start || v < 1 || p < 1) continue;
+      D.a[id] = [v-1, p-1]; D.bot[id] = 1;
+      const ph = (D.ph||[]).find(x => x[0]===id && x[2] > 0);
+      if(ph){
+        ph[2]--;
+        const vh = (D.vh||[]).find(x => x[0]===(a.pid||"") && String(x[1])===String(a.r||"") && x[2]===ph[1] && x[3] > 0);
+        if(vh) vh[3]--;
+      }
+    }
+  }
+}
+
 // ---------- агрегирование выбранного периода
 function aggregate(){
   const days = periodDays();
@@ -295,6 +318,7 @@ function aggregate(){
   const events = [];
   const covHour = new Array(26).fill(0);
   const ok = id => adOk(id, ads[id]);
+  let bot = 0;
   for(const d of days){
     const D = CUBE.days[d]; let dv = 0, dp = 0;
     if(D){
@@ -304,10 +328,11 @@ function aggregate(){
       for(const [pid,r,h,n] of D.vh){ if(!vhOk(pid,r)) continue; vHour[h] += n; if(h < 24) heatV[wdOf(d)][h] += n; }
       for(const e of D.ev){ if(!ok(e[1])) continue; events.push(e); const x = per.get(e[1]) || {dv:0,dp:0,ev:[]}; x.ev.push(e); per.set(e[1], x); }
       for(const h in (D.cov||{})) covHour[h] += D.cov[h];
+      for(const id in (D.bot||{})) if(ok(id)) bot++;
     }
     byDay.push({d, dv, dp});
   }
-  return {days, per, byDay, phHour, vHour, heat, heatV, events, covHour};
+  return {days, per, byDay, phHour, vHour, heat, heatV, events, covHour, bot};
 }
 
 // ---------- графики (SVG)
@@ -369,6 +394,7 @@ function viewOverview(A){
     <div class="panel"><h2>Прирост просмотров по дням</h2>${barChart(A.byDay.map(x=>x.dv), labels, "bar-v", {title:"Просмотры по дням"})}</div>
     <div class="panel"><h2>Открытия номера по дням</h2>${barChart(A.byDay.map(x=>x.dp), labels, "bar-p", {title:"Открытия номера по дням"})}</div>
   </div>
+${A.bot ? `<p class="note robot">🤖 <b>Отфильтровано как робот: ${fmt(A.bot)} открытий номера и ${fmt(A.bot)} просмотров</b> на объявлениях, размещённых раньше. Программа каждый день обходит объявления и в каждом один раз открывает номер — такие открытия в цифры выше не входят.</p>` : ""}
   <p class="note">Данные собираются каждый час с 6:00 до 0:00 по Минску. Прирост за ночь виден утром отдельной строкой во вкладке «По часам».</p>`;
 }
 
@@ -487,6 +513,7 @@ function viewEmployees(A){
   <div class="legend"><span>🥇🥈🥉 — больше всего открытий номера за период</span><span>⭐ — лучшая отдача: открытий на одно активное объявление (от 10 объявлений)</span><span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></span>лучшее значение в столбце</span></div>
   <div class="tbl-wrap"><table>${head}<tbody>${conf.map(tr).join("")}</tbody></table></div>
   ${unconf.length ? `<details class="sec"><summary class="muted" style="cursor:pointer">Не подтверждены (${unconf.length}) — имя взято из объявления, профиль продавца ещё уточняется</summary><div class="tbl-wrap sec"><table>${head}<tbody>${unconf.map(tr).join("")}</tbody></table></div></details>` : ""}
+${A.bot ? `<p class="note robot">🤖 <b>Отфильтровано как робот: ${fmt(A.bot)} открытий номера и ${fmt(A.bot)} просмотров</b> на объявлениях, размещённых раньше. Программа каждый день обходит объявления и в каждом один раз открывает номер — такие открытия в цифры выше не входят.</p>` : ""}
   <p class="note"><b>Новые</b> — объявления, размещённые в выбранном периоде: сколько их посмотрели и сколько раз открыли номер. <b>Старые</b> — объявления, размещённые раньше, которые смотрели и открывали в этом периоде. Открытия номера — счётчик Kufar «показы телефона», а не звонки. Нажмите на сотрудника, чтобы посмотреть его объявления.</p>`;
 }
 
@@ -866,6 +893,7 @@ function loadState(){ try{ const x = JSON.parse(localStorage.getItem("radar_f")|
   }
   const rs = Object.values(CAT.ads).filter(a => a.pe && a.pu).map(a => a.pe/a.pu).sort((x,y)=>x-y);
   if(rs.length) EUR_RATE = rs[Math.floor(rs.length/2)];
+  removeRobot();
   const age = (Date.now()/1000 - STATUS.last_run) / 3600;
   $("#status").textContent = "Обновлено " + dtLocal(STATUS.last_run);
   const h = new Date(Date.now()+TZ_OFF).getUTCHours();
