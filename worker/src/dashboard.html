@@ -307,6 +307,9 @@ function removeRobot(){
   }
 }
 
+// первый день, когда радар замерял весь день (до него — данные старой базы)
+function radarStart(){ return Object.keys(CUBE.days).sort().find(d => (CUBE.days[d].runs||[]).length >= 10) || "9999"; }
+
 // ---------- агрегирование выбранного периода
 function aggregate(){
   const days = periodDays();
@@ -382,6 +385,7 @@ function viewOverview(A){
   const cnt = t => A.events.filter(e => e[2] === t).length;
   const promoOn = A.events.filter(e => e[2].startsWith("promo_") && e[4]).length;
   const labels = A.byDay.map(x => x.d.slice(8,10)+"."+x.d.slice(5,7));
+  const r0 = radarStart(), oldDb = i => A.byDay[i].d < r0, hasOld = A.byDay.some((x,i) => oldDb(i));
   return `<div class="kpis">
     ${kpi(fmt(dv),"Прирост просмотров","за выбранный период")}
     ${kpi(fmt(dp),"Открытий номера","не звонки — Kufar считает показы телефона")}
@@ -392,9 +396,10 @@ function viewOverview(A){
     ${kpi(fmt(promoOn),"Включений продвижения","выделение, закреп, ленточки")}
   </div>
   <div class="grid2">
-    <div class="panel"><h2>Прирост просмотров по дням</h2>${barChart(A.byDay.map(x=>x.dv), labels, "bar-v", {title:"Просмотры по дням"})}</div>
-    <div class="panel"><h2>Открытия номера по дням</h2>${barChart(A.byDay.map(x=>x.dp), labels, "bar-p", {title:"Открытия номера по дням"})}</div>
+    <div class="panel"><h2>Прирост просмотров по дням</h2>${barChart(A.byDay.map(x=>x.dv), labels, "bar-v", {title:"Просмотры по дням", special:oldDb})}</div>
+    <div class="panel"><h2>Открытия номера по дням</h2>${barChart(A.byDay.map(x=>x.dp), labels, "bar-p", {title:"Открытия номера по дням", special:oldDb})}</div>
   </div>
+  ${hasOld ? `<p class="note">Серые столбцы — дни до ${r0.slice(8,10)}.${r0.slice(5,7)} из старой базы. Старый монитор замерял только часть объявлений, поэтому эти дни ниже примерно в 2 раза. Сравнивайте дни внутри одного цвета.</p>` : ""}
 ${A.bot ? `<p class="note robot">🤖 <b>Отфильтровано как робот: ${fmt(A.bot)} открытий номера и ${fmt(A.bot)} просмотров</b> на объявлениях, размещённых раньше. Программа каждый день обходит объявления и в каждом один раз открывает номер — такие открытия в цифры выше не входят.</p>` : ""}
   <p class="note">Данные собираются каждый час с 6:00 до 0:00 по Минску. Прирост за ночь виден утром отдельной строкой во вкладке «По часам».</p>`;
 }
