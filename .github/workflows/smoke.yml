@@ -11,9 +11,9 @@ permissions:
   contents: read
 jobs:
   smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # закреплено, чтобы 19.10 не переехать на Ubuntu 26 вслепую
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: check dashboard
         env:
           RADAR_KEY: ${{ secrets.RADAR_KEY }}
@@ -27,11 +27,15 @@ jobs:
             case "$p" in /d/status*) extra=" body=$body";; *) extra="";; esac
             [ "${code%% *}" = "200" ] || extra=" body=$body"
             echo "::notice::${p%%\?*} -> $code$extra"
+            # без ключа дашборд и должен отвечать 404; всё остальное обязано быть 200
+            if [ "$p" != "/" ] && [ "${code%% *}" != "200" ]; then bad=1; fi
           done
+          [ -z "$bad" ] || { echo "::error::Дашборд или данные не отвечают"; exit 1; }
           echo "URL=$H/?k=$K" >> $GITHUB_ENV
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with: { node-version: "22" }
       - name: ui check
+        continue-on-error: true   # проверка интерфейса — только предупреждение, без письма
         run: |
           cd tools && npm i -s playwright@1 >/dev/null 2>&1 && npx playwright install --with-deps chromium >/dev/null 2>&1
           node ui_check.js

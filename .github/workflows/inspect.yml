@@ -1,17 +1,14 @@
 name: inspect
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ["collector/inspect_data.py", "collector/inspect_counters.py", "collector/inspect_night.py", ".github/workflows/inspect.yml"]
+  workflow_dispatch:   # только ручной запуск — эксперимент, писем при коммитах не будет
 permissions:
   contents: read
 jobs:
   inspect:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04   # закреплено, чтобы 19.10 не переехать на Ubuntu 26 вслепую
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with: { python-version: "3.12" }
       - run: pip install -q requests
       - env:
