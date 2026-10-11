@@ -511,9 +511,9 @@ function viewEmployees(A){
     ${cell(e,"ov",fmt(e.ov),"gs")}${cell(e,"op",fmt(e.op))}${cell(e,"conv",e.dv?pct(e.dp,e.dv):"—","gs")}
     <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`;
   const g = h => h.replace('class="num"','class="num gs"');
-  const head = `<thead><tr class="grp"><th></th><th></th><th colspan="3" class="gs">Новые — размещены в периоде</th><th colspan="2" class="gs">Старые — размещены раньше</th><th class="gs">Итого</th><th colspan="3"></th></tr>
-    <tr>${th("employees","name","Сотрудник")}${th("employees","active","Активных",1)}${g(th("employees","newc","Размещено",1))}${th("employees","nv","Просм.",1)}${th("employees","np","Откр. номера",1)}
-    ${g(th("employees","ov","Просм.",1))}${th("employees","op","Откр. номера",1)}${g(th("employees","conv","Конверсия",1))}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead>`;
+  const head = `<thead><tr class="grp"><th></th><th></th><th colspan="3" class="gs">Новые объявления<div class="muted" style="font-weight:400;font-size:11px">размещены в выбранные дни</div></th><th colspan="2" class="gs">Старые объявления<div class="muted" style="font-weight:400;font-size:11px">размещены раньше, работали в эти дни</div></th><th class="gs">Все объявления</th><th colspan="3"></th></tr>
+    <tr>${th("employees","name","Сотрудник")}${th("employees","active","Объявлений сейчас",1)}${g(th("employees","newc","Сколько размещено",1))}${th("employees","nv","Просмотры",1)}${th("employees","np","Открыли номер",1)}
+    ${g(th("employees","ov","Просмотры",1))}${th("employees","op","Открыли номер",1)}${g(th("employees","conv","Открыли номер, % от просмотров",1))}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead>`;
   return `<h2>Результаты сотрудников</h2>
   <div class="legend"><span>🥇🥈🥉 — больше всего открытий номера за период</span><span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></span>лучшее значение в столбце</span></div>
   <div class="tbl-wrap emp"><table>${head}<tbody>${conf.map(tr).join("")}</tbody></table></div>
