@@ -49,7 +49,8 @@ jobs:
           sed -i "s/__KV_ID__/${KV_ID}/" wrangler.toml
           [ -n "$KV_ID" ] || { echo "::error::no KV id"; exit 1; }
           export CLOUDFLARE_API_TOKEN="$CF_TOKEN"
-          npx --yes wrangler@4 deploy > /tmp/deploy.log 2>&1 || { tail -30 /tmp/deploy.log; echo "::error::wrangler deploy failed: $(sed 's/\x1b\[[0-9;]*m//g' /tmp/deploy.log | grep -v '^\s*$' | tail -12 | tr '\n' ' ' | cut -c1-900)"; exit 1; }
+          for i in 1 2 3 4; do npx --yes wrangler@4 deploy > /tmp/deploy.log 2>&1 && break; echo "попытка $i не удалась, жду"; sleep $((i*30)); done
+          grep -q "Deployed\|Current Version ID\|Uploaded" /tmp/deploy.log || { tail -30 /tmp/deploy.log; echo "::error::wrangler deploy failed: $(sed 's/\x1b\[[0-9;]*m//g' /tmp/deploy.log | grep -v '^\s*$' | tail -12 | tr '\n' ' ' | cut -c1-900)"; exit 1; }
           npx --yes wrangler@4 secret put RADAR_KEY < /tmp/radar_key > /tmp/secret.log 2>&1 || echo "::warning::secret put failed (ключ уже задан ранее, дашборд обновлён): $(sed 's/\x1b\[[0-9;]*m//g' /tmp/secret.log | grep -v '^\s*$' | tail -8 | tr '\n' ' ' | cut -c1-900)"
           SUB=$(curl -s -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" | python3 -c "import sys,json;print((json.load(sys.stdin).get('result') or {}).get('subdomain') or '')")
           HOST="radar.$SUB.workers.dev"
