@@ -633,14 +633,38 @@ function promoData(days){
   }
   return {promoDaily, effectDaily, daySet};
 }
-function pPackages(){
-  const ex = new Set(pcfg().excluded_agents), pr = pcfg().prices, out = [];
-  for(const [id,a] of Object.entries(CAT.ads)){
-    if(!(a.fv || a.fh)) continue; const ag = pAgent(id); if(!ag || ex.has(ag)) continue;
-    const pkg = a.fv ? "turbo" : "express", ts = a.fv || a.fh;
-    out.push({ad_id:id, agent:ag, package:pkg, purchase_ts:ts, purchase_day:dayOfTs(ts), price:+pr[pkg]||0, before: !!a.pb4});
+// моменты включения рекламы: каждое включение после выключения дольше 3 часов — новая покупка
+function onStarts(L){
+  const out = []; let st = false, lastOff = null;
+  for(const [t,on] of (L||[])){
+    if(on && !st){ if(!(lastOff != null && t - lastOff < 3*3600 && out.length)) out.push(t); st = true; }
+    else if(!on && st){ st = false; lastOff = t; }
   }
   return out;
+}
+// покупки рекламы: каждая покупка отдельно (повторный VIP или повторное выделение — новый пакет)
+let PKG_CACHE = null;
+function pPackages(){
+  if(PKG_CACHE) return PKG_CACHE;
+  const ex = new Set(pcfg().excluded_agents), pr = pcfg().prices, idx = promoOnIndex(), out = [];
+  for(const [id,a] of Object.entries(CAT.ads)){
+    if(!(a.fv || a.fh)) continue; const ag = pAgent(id); if(!ag || ex.has(ag)) continue;
+    const vip = onStarts(idx[id+"|promo_pp"]), hl = onStarts(idx[id+"|promo_hl"]);
+    const mine = [];
+    const add = (pkg, ts, before) => mine.push({ad_id:id, agent:ag, package:pkg, purchase_ts:ts, purchase_day:dayOfTs(ts), price:+pr[pkg]||0, before});
+    // реклама уже была включена, когда объявление впервые попало в обход — покупка по первому замеченному VIP/выделению
+    if(a.fv && !vip.some(t => Math.abs(t - a.fv) < 3*3600) && (!vip.length || a.fv < vip[0])) add("turbo", a.fv, !!a.pb4);
+    for(const t of vip) add("turbo", t, false);
+    const turboTs = mine.map(x => x.purchase_ts);
+    const nearTurbo = t => turboTs.some(v => Math.abs(t - v) < 2*3600);
+    if(!a.fv && a.fh && !hl.some(t => Math.abs(t - a.fh) < 3*3600) && (!hl.length || a.fh < hl[0])) add("express", a.fh, !!a.pb4);
+    for(const t of hl) if(!nearTurbo(t)) add("express", t, false);
+    // эффект пакета — до следующей покупки по этому же объявлению, но не дольше 7 дней
+    mine.sort((x,y) => x.purchase_ts - y.purchase_ts);
+    mine.forEach((x,i) => { x.end = Math.min(x.purchase_ts + 7*86400, i+1 < mine.length ? mine[i+1].purchase_ts : Infinity); });
+    out.push(...mine);
+  }
+  return PKG_CACHE = out;
 }
 function pAggregate(P, status){
   const m = new Map(), get = a => { if(!m.has(a)) m.set(a,{agent:a, adDays:0, views:0, phones:0}); return m.get(a); };
@@ -729,7 +753,7 @@ function pEfficiency(P, days){
   for(const p of pk){
     const r = row(p.agent); r[p.package]++; r.packages++; r.paid += p.price;
     r.worked += p.price * Math.min(1, Math.max(0, (endTs - p.purchase_ts)/86400)/7);
-    const end = p.purchase_ts + 7*86400;
+    const end = p.end;
     for(const e of P.effectDaily){ if(e.ad_id !== p.ad_id) continue; const t = Date.parse(e.day+"T12:00:00+03:00")/1000; if(t < p.purchase_ts || t > end) continue; r.views += e.views; r.phones += e.phoneviews; }
   }
   // поднятия без VIP и выделения в тот же день
@@ -795,7 +819,8 @@ function viewPromo(){
   const statusBy = new Map(), daysBy = new Map(), effBy = new Map();
   for(const x of P.promoDaily){ if(!statusBy.has(x.ad_id)) statusBy.set(x.ad_id,new Set()); statusBy.get(x.ad_id).add(x.promo_status); daysBy.set(x.ad_id,(daysBy.get(x.ad_id)||0)+1); }
   for(const x of P.effectDaily){ const e = effBy.get(x.ad_id) || {v:0,p:0}; e.v += x.views; e.p += x.phoneviews; effBy.set(x.ad_id,e); }
-  const pkMap = new Map(pPackages().map(x=>[x.ad_id,x]));
+  const pkMap = new Map(); for(const x of pPackages()){ const c = pkMap.get(x.ad_id) || {turbo:0, express:0}; c[x.package]++; pkMap.set(x.ad_id, c); }
+  const pkTxt = c => [c.turbo ? "Турбо"+(c.turbo>1?" ×"+c.turbo:"") : "", c.express ? "Экспресс"+(c.express>1?" ×"+c.express:"") : ""].filter(Boolean).join(" + ");
   const agentsList = ["Все", ...[...new Set([...ids].map(pAgent))].sort(pOrder)];
   let rows = [...ids].map(id => ({id, a:CAT.ads[id], agent:pAgent(id)}));
   if(PS.agent !== "Все") rows = rows.filter(r => r.agent === PS.agent);
@@ -804,8 +829,8 @@ function viewPromo(){
     <div class="tbl-wrap"><table><thead><tr><th>Агент</th><th>Объявление</th><th>Реклама</th><th class="num">Дней</th><th class="num">Просмотры</th><th class="num">Открытия</th><th class="num">Цена €</th></tr></thead><tbody>${
       rows.length ? rows.map(r => { const st = statusBy.get(r.id)||new Set(), e = effBy.get(r.id)||{v:0,p:0}, pk = pkMap.get(r.id);
         return `<tr><td>${esc(r.agent)}</td><td class="title"><a href="https://re.kufar.by/vi/${esc(r.id)}" target="_blank" rel="noopener noreferrer">${esc(r.a.ad||r.a.t||r.id)}</a><div class="muted" style="font-size:12px">${r.a.a!=null?fmt1(r.a.a)+" м² · ":""}${r.a.fl?esc(r.a.fl)+" эт.":""}</div></td>
-          <td>${st.has("vip")?"VIP":st.has("highlight")?"выделение":"—"}${pk?" · "+(pk.package==="turbo"?"Турбо":"Экспресс"):""}</td><td class="num">${daysBy.get(r.id)||0}</td><td class="num">${fmt(e.v)}</td><td class="num">${fmt(e.p)}</td><td class="num">${fmt(eur(r.a))}</td></tr>`; }).join("") : `<tr><td colspan="7" class="muted">Нет объявлений для выбранного фильтра</td></tr>`}</tbody></table></div>
-    <p class="note">Поднятия — по изменению даты публикации между соседними обходами; часть поднятий может быть пропущена. Пакеты, начавшиеся до начала истории (22.09), не считаются купленными в известную дату. Учитываются только объявления в Минск-Мире. Фильтры сотрудников и комнатности на эту вкладку не действуют — только период.</p></div>`;
+          <td>${st.has("vip")?"VIP":st.has("highlight")?"выделение":"—"}${pk?" · "+pkTxt(pk):""}</td><td class="num">${daysBy.get(r.id)||0}</td><td class="num">${fmt(e.v)}</td><td class="num">${fmt(e.p)}</td><td class="num">${fmt(eur(r.a))}</td></tr>`; }).join("") : `<tr><td colspan="7" class="muted">Нет объявлений для выбранного фильтра</td></tr>`}</tbody></table></div>
+    <p class="note">Поднятия — по изменению даты публикации между соседними обходами; часть поднятий может быть пропущена. Каждая покупка считается отдельно: если реклама выключилась и через 3+ часа включилась снова — это новая покупка. Пакеты, начавшиеся до начала истории (22.09), не считаются купленными в известную дату. Учитываются только объявления в Минск-Мире. Фильтры сотрудников и комнатности на эту вкладку не действуют — только период.</p></div>`;
   return h;
 }
 

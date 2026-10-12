@@ -24,6 +24,8 @@ const { chromium } = require('playwright');
     out['period_' + per] = await p.evaluate(() => [...document.querySelectorAll('.kpi .v')].map(e => e.textContent).slice(0, 3).join(' | '));
   }
   console.log(`::notice title=ui::${JSON.stringify(out)}`);
+  const pk = await p.evaluate(() => { try { const m = {}; for (const x of pPackages()) { const r = m[x.agent] || (m[x.agent] = {turbo: 0, express: 0, repeat: 0, before: 0}); r[x.package]++; if (x.before) r.before++; } const ads = {}; for (const x of pPackages()) ads[x.ad_id] = (ads[x.ad_id] || 0) + 1; for (const [id, n] of Object.entries(ads)) if (n > 1) { const ag = pAgent(id); m[ag].repeat += n - 1; } return m; } catch (e) { return String(e); } });
+  console.log(`::notice title=packages::${JSON.stringify(pk).slice(0, 900)}`);
   console.log(`::notice title=ui_errors::${JSON.stringify(errs.slice(0, 5))}`);
   await b.close();
 })();
