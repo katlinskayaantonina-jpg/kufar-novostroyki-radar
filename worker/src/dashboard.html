@@ -501,8 +501,11 @@ function viewEmployees(A){
   for(const d of A.days){ const D = CUBE.days[d]; if(!D) continue; for(const [id,h,n] of D.ph){ const a = ads[id]; if(!adOk(id,a) || h>23) continue; get(empKey(a)).ph[h] += n; } }
   const all = [...m.values()].map(e => { const mx = Math.max(...e.ph); return {...e, npPerNew: e.newc ? e.np/e.newc : 0, perAd: e.active ? e.dp/e.active : 0, conv: e.dv ? e.dp/e.dv : 0, best: mx ? e.ph.indexOf(mx) : -1}; });
   const conf = all.filter(e => e.confirmed), unconf = all.filter(e => !e.confirmed);
-  sortRows(conf, "employees", {key:"dp", dir:-1}); sortRows(unconf, "employees", {key:"dp", dir:-1});
-  const byDp = [...conf].sort((a,b)=>b.dp-a.dp), medal = new Map(byDp.slice(0,3).filter(e=>e.dp>0).map((e,i)=>[e.k,["🥇","🥈","🥉"][i]]));
+  // по умолчанию: открытия номера по новым объявлениям, при равенстве — просмотры новых
+  const byNew = (a,b) => (b.np-a.np) || (b.nv-a.nv) || (b.newc-a.newc);
+  conf.sort(byNew); unconf.sort(byNew);
+  if(S.sort.emp){ sortRows(conf, "emp", S.sort.emp); sortRows(unconf, "emp", S.sort.emp); }
+  const medal = new Map([...conf].sort(byNew).slice(0,3).filter(e=>e.np>0).map((e,i)=>[e.k,["🥇","🥈","🥉"][i]]));
   const cols = ["active","newc","nv","np","ov","op","conv"], best = {};
   for(const c of cols) best[c] = Math.max(...conf.map(e => e[c]||0));
   const cell = (e,c,txt,cls="") => `<td class="num ${cls} ${e.confirmed && e[c] && e[c]===best[c] ? "bestcell" : ""}">${txt}</td>`;
@@ -512,10 +515,10 @@ function viewEmployees(A){
     <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`;
   const g = h => h.replace('class="num"','class="num gs"');
   const head = `<thead><tr class="grp"><th></th><th></th><th colspan="3" class="gs">Размещены в выбранном периоде</th><th colspan="2" class="gs">Размещены до выбранного периода, но просмотрены в выбранном периоде</th><th class="gs">Все объявления</th><th colspan="3"></th></tr>
-    <tr>${th("employees","name","Сотрудник")}${th("employees","active","Объявлений сейчас",1)}${g(th("employees","newc","Сколько размещено",1))}${th("employees","nv","Просмотры",1)}${th("employees","np","Открыли номер",1)}
-    ${g(th("employees","ov","Просмотры",1))}${th("employees","op","Открыли номер",1)}${g(th("employees","conv","Открыли номер, % от просмотров",1))}${th("employees","raises","Поднятий",1)}${th("employees","promo","Продвижений",1)}${th("employees","best","Лучший час",1)}</tr></thead>`;
+    <tr>${th("emp","name","Сотрудник")}${th("emp","active","Объявлений сейчас",1)}${g(th("emp","newc","Сколько размещено",1))}${th("emp","nv","Просмотры",1)}${th("emp","np","Открыли номер",1)}
+    ${g(th("emp","ov","Просмотры",1))}${th("emp","op","Открыли номер",1)}${g(th("emp","conv","Открыли номер, % от просмотров",1))}${th("emp","raises","Поднятий",1)}${th("emp","promo","Продвижений",1)}${th("emp","best","Лучший час",1)}</tr></thead>`;
   return `<h2>Результаты сотрудников</h2>
-  <div class="legend"><span>🥇🥈🥉 — больше всего открытий номера за период</span><span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></span>лучшее значение в столбце</span></div>
+  <div class="legend"><span>🥇🥈🥉 — больше всего открытий номера по объявлениям, размещённым в выбранном периоде</span><span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></span>лучшее значение в столбце</span></div>
   <div class="tbl-wrap emp"><table>${head}<tbody>${conf.map(tr).join("")}</tbody></table></div>
   ${unconf.length ? `<details class="sec"><summary class="muted" style="cursor:pointer">Не подтверждены (${unconf.length}) — имя взято из объявления, профиль продавца ещё уточняется</summary><div class="tbl-wrap sec"><table>${head}<tbody>${unconf.map(tr).join("")}</tbody></table></div></details>` : ""}
 ${A.bot ? `<p class="note robot">🤖 <b>Отфильтровано как робот: ${fmt(A.bot)} открытий номера и ${fmt(A.bot)} просмотров</b> на объявлениях, размещённых раньше. Программа каждый день обходит объявления и в каждом один раз открывает номер — такие открытия в цифры выше не входят.</p>` : ""}
@@ -854,7 +857,7 @@ document.addEventListener("click", ev => {
   else if(t.dataset.ad){ openAd(t.dataset.ad); return; }
   else if(t.dataset.emp){ S.emps = new Set([t.dataset.emp]); S.tab = "ads"; }
   else if(t.dataset.more){ S.limit += 60; }
-  else if(t.id === "reset"){ Object.assign(S, {period:"7", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, limit:60}); $("#q").value=""; $("#newOnly").checked=true; }
+  else if(t.id === "reset"){ Object.assign(S, {period:"7", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, limit:60}); delete S.sort.emp; $("#q").value=""; $("#newOnly").checked=true; }
   else if(t.id === "empBtn"){ const L = $("#empList"); if(L.hidden){ renderEmpList(); L.hidden = false; } else L.hidden = true; return; }
   else if(t.id === "empClear"){ S.emps.clear(); renderEmpList(); }
   else if(t.id === "closeDrawer"){ $("#drawer").style.display = "none"; return; }
