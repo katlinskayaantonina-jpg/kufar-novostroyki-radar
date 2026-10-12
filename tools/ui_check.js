@@ -32,6 +32,9 @@ const { chromium } = require('playwright');
     const vip = {}, hl = {}; for (const x of P.promoDaily) if (want.some(w => x.agent.includes(w))) { const m = x.promo_status === "vip" ? vip : hl; m[x.agent] = (m[x.agent]||0) + 1; }
     return {from: days[0], to: days[days.length-1], rows, pre, ad, vip, hl}; } catch (e) { return String(e); } });
   console.log(`::notice title=eff::${JSON.stringify(eff).slice(0, 1800)}`);
+  const dm = await p.evaluate(() => { try { const pid = Object.entries(CAT.profiles).find(([k, v]) => (v.name || "").includes("Спиридонов"))?.[0]; S.emps = new Set(["p:" + pid]); S.period = "today"; S.tab = "ads"; render();
+    return {pid, h3: [...document.querySelectorAll("h3.sec")].map(e => e.textContent), cards: [...document.querySelectorAll(".acard")].slice(0, 13).map(e => (e.textContent.match(/Размещено [0-9.: ]+/) || [""])[0].trim())}; } catch (e) { return String(e); } });
+  console.log(`::notice title=dmitry::${JSON.stringify(dm).slice(0, 900)}`);
   console.log(`::notice title=packages::${JSON.stringify(pk).slice(0, 900)}`);
   console.log(`::notice title=ui_errors::${JSON.stringify(errs.slice(0, 5))}`);
   await b.close();
