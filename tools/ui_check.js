@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
     await p.waitForTimeout(400);
     out[t] = await p.evaluate(() => ({
       kpis: [...document.querySelectorAll('.kpi .v')].map(e => e.textContent).slice(0, 7).join(' | '),
-      rows: document.querySelectorAll('tbody tr').length, cards: document.querySelectorAll('.acard').length,
+      rows: document.querySelectorAll('tbody tr').length, cards: document.querySelectorAll('.acard').length, h3: [...document.querySelectorAll('h3.sec')].map(e => e.textContent).join(' / ').slice(0, 200),
       bars: document.querySelectorAll('svg path').length,
     }));
   }
