@@ -1,0 +1,28 @@
+name: export-profile
+on:
+  workflow_dispatch:
+    inputs:
+      profile_id: { description: "Kufar profile id", required: true }
+      profile_name: { description: "Имя", required: false }
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: pip install -q requests cryptography
+      - env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+          PROFILE_ID: ${{ inputs.profile_id }}
+          PROFILE_NAME: ${{ inputs.profile_name }}
+        run: python collector/export_profile.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: export-encrypted
+          path: out/export.enc
+          retention-days: 1
