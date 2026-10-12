@@ -487,7 +487,7 @@ function viewAds(A){
   const fresh = rows.filter(r => newSet.has(r.id)), older = rows.filter(r => !newSet.has(r.id));
   return `<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 style="margin:0">Объявления за период · ${fmt(rows.length)}</h2>${sortSelect("ads","dp")}</div>
   <h3 class="sec">Размещены в выбранном периоде · ${fmt(fresh.length)}</h3>
-  ${fresh.length ? `<div class="cgrid">${fresh.map(r => adCard(r)).join("")}</div>` : `<p class="muted">В выбранном периоде новых объявлений нет.</p>`}
+  ${fresh.length ? cardGrid(fresh) : `<p class="muted">В выбранном периоде новых объявлений нет.</p>`}
   <h3 class="sec">Размещены до выбранного периода · ${fmt(older.length)}</h3>
   ${cardGrid(older)}
   <p class="note">Активные объявления и те, у которых были просмотры или события в периоде. Цифры просмотров и открытий — прирост за выбранный период. 🚀 — быстрый старт: в первые сутки после размещения набрало больше, чем 85–90% других объявлений. Нажмите на карточку — история по дням.</p>`;
