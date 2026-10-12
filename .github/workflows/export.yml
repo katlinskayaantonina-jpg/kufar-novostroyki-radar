@@ -5,7 +5,7 @@ on:
       profile_id: { description: "Kufar profile id", required: true }
       profile_name: { description: "Имя", required: false }
 permissions:
-  contents: read
+  contents: write
 jobs:
   export:
     runs-on: ubuntu-24.04
@@ -21,8 +21,10 @@ jobs:
           PROFILE_ID: ${{ inputs.profile_id }}
           PROFILE_NAME: ${{ inputs.profile_name }}
         run: python collector/export_profile.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: export-encrypted
-          path: out/export.enc
-          retention-days: 1
+      - name: Передать зашифрованный файл через временную ветку
+        run: |
+          cd out
+          git init -q -b export-tmp
+          git config user.name radar-bot; git config user.email radar-bot@users.noreply.github.com
+          git add export.enc && git commit -qm "temp encrypted export"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" export-tmp
