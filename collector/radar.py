@@ -289,9 +289,9 @@ def bucket_for(t0: int, t1: int) -> tuple[str, int]:
         mid = local((t0 + t1) / 2)
         return mid.strftime("%Y-%m-%d"), mid.hour
     a, b = local(t0), local(t1)
-    if a.date() != b.date() or a.hour >= 22 or b.hour <= 8:
-        # перерыв на ночь: последний вечерний замер -> первый утренний
-        if (b - a) <= timedelta(hours=14) and (a.hour >= 20 or b.hour <= 9):
+    if a.date() != b.date() or a.hour >= 22 or a.hour <= 1 or b.hour <= 10:
+        # перерыв на ночь: последний вечерний замер (около 0:00) -> первый утренний (около 8:00)
+        if (b - a) <= timedelta(hours=14) and (a.hour >= 20 or a.hour <= 1 or b.hour <= 10):
             return b.strftime("%Y-%m-%d"), NIGHT_BUCKET
     return b.strftime("%Y-%m-%d"), SPREAD_BUCKET
 
