@@ -8,4 +8,4 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Удалить временную ветку с зашифрованной выгрузкой
-        run: git push -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" --delete export-tmp || true
+        run: git init -q tmp && cd tmp && git push "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" --delete export-tmp
