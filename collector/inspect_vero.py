@@ -1,30 +1,19 @@
-"""Ряд по дням до/после фильтра робота (Этажи, новостройки). Только агрегаты."""
+"""Почему у VIP-объявления не определена дата начала. Только агрегаты."""
 import json, os, sys, traceback
 from datetime import datetime, timezone, timedelta
 sys.path.insert(0, os.path.dirname(__file__))
 from kv import KV
-MSK = timezone(timedelta(hours=3))
+M = timezone(timedelta(hours=3)); f = lambda t: datetime.fromtimestamp(t, M).strftime("%d.%m %H:%M") if t else None
 try:
-    kv = KV(); cat = kv.get_json("catalog", {}); ads = cat["ads"]
-    days = kv.get_json("cube", {})["days"]
-    comp = {k for k, v in cat.get("companies", {}).items() if "Этаж" in str(v)}
-    rows = []
-    for d in sorted(days):
-        D = days[d]; start = datetime.fromisoformat(d).replace(tzinfo=MSK).timestamp()
-        newids = {e[1] for e in D.get("ev", []) if e[2] == "new"}
-        r = [d[5:], 0, 0, 0, 0, 0, 0, 0, len(D.get("runs", []))]  # day, adsWithActivity, rawV, rawP, newV, newP, oldV, oldP, runs
-        for aid, (v, p) in D.get("a", {}).items():
-            a = ads.get(aid)
-            if not a or a.get("c") not in comp or not a.get("nw"):
-                continue
-            r[1] += 1; r[2] += v; r[3] += p
-            placed = a.get("lt0") or a.get("fs") or a.get("lt")
-            if placed and placed < start and v >= 1 and p >= 1:
-                v, p = v - 1, p - 1
-            if aid in newids: r[4] += v; r[5] += p
-            else: r[6] += v; r[7] += p
-        rows.append(r)
-    s = json.dumps(rows, ensure_ascii=False)
-    for i in range(0, len(s), 900): print(f"::notice title=series{i//900}::" + s[i:i+900])
+    kv = KV(); cat = kv.get_json("catalog", {}); ads = cat["ads"]; days = kv.get_json("cube", {})["days"]
+    out = []
+    for aid, a in ads.items():
+        if not a.get("act") or not (a.get("pp") or a.get("hl")): continue
+        pr = [(d[5:], days[d]["pr"][aid]) for d in sorted(days) if aid in days[d].get("pr", {})]
+        evs = [(f(e[0]), e[2], e[3], e[4]) for d in sorted(days) for e in days[d].get("ev", []) if e[1] == aid and e[2] in ("promo_pp", "promo_hl", "new")]
+        out.append({"addr": (a.get("ad") or "")[:22], "pp": a.get("pp"), "hl": a.get("hl"), "fv": f(a.get("fv")), "fh": f(a.get("fh")), "pb4": a.get("pb4"),
+                    "fs": f(a.get("fs")), "lt0": f(a.get("lt0")), "pr": pr[-12:], "ev": evs[-8:]})
+    s = json.dumps(out, ensure_ascii=False)
+    for i in range(0, len(s), 900): print(f"::notice title=p{i//900:02d}::" + s[i:i+900])
 except Exception:
     print("::error title=x::" + traceback.format_exc()[-800:].replace("\n", " | "))
