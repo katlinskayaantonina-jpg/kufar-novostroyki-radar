@@ -454,8 +454,9 @@ function promoBadges(a){
   if(a.rb) s += `<span class="badge on">ленточка</span>`;
   return s;
 }
-function adCard(r, mode){
-  const a = r.a, f = isFast(r.id);
+function adCard(r, mode, opts){
+  opts = opts || {};
+  const a = r.a, f = isFast(r.id), pl = opts.plus ? "+" : "";
   let dates = `Размещено ${dtLocal(r.placed)}`;
   if(r.lastRaise) dates += ` · поднято ${dtLocal(r.lastRaise)}`;
   if(mode === "promo" && (a.fv||a.fh)) dates = `Реклама с ${dtLocal(Math.min(a.fv||Infinity, a.fh||Infinity))} · ` + (r.lastRaise ? `поднято ${dtLocal(r.lastRaise)}` : `размещено ${dtLocal(r.placed)}`);
@@ -467,7 +468,8 @@ function adCard(r, mode){
       <div class="am">${esc(a.ad||"")}</div>
       <div class="aw">${esc(r.emp)} · ${esc(a.r||"?")}-комн. · ${fmt1(a.a)} м² · ${fmt(eur(a))} €</div>
       <div class="ad8">${dates}</div>
-      <div class="amet"><span><b>${fmt(r.dv)}</b> просм.</span><span><b>${fmt(r.dp)}</b> откр. номера</span><span>${r.dv?pct(r.dp,r.dv):"—"}</span></div>
+      <div class="amet"><span><b>${pl}${fmt(r.dv)}</b> просм.</span><span><b>${pl}${fmt(r.dp)}</b> откр. номера</span><span>${r.dv?pct(r.dp,r.dv):"—"}</span></div>
+      ${opts.total ? `<div class="ad8">Всего с размещения: <b>${fmt(a.v||0)}</b> просм. · <b>${fmt(a.p||0)}</b> откр. номера</div>` : ""}
       <div>${promoBadges(a)}${f ? `<span class="badge fast" title="Первые сутки после размещения: ${f[0]} просмотров, ${f[1]} открытий номера">🚀 быстрый старт</span>` : ""}${r.raises ? `<span class="badge">поднятий: ${r.raises}</span>` : ""}</div>
     </div></div>`;
 }
@@ -603,7 +605,10 @@ function openGroup(area){
 }
 
 // ---------- что работает: органика и продвижение
-function topSection(title, sub, rows, mode){
+function topSection(title, sub, rows, mode, opts){
+  opts = opts || {};
+  const topLabel = opts.topLabel || "ТОП-30 по открытиям номера";
+  const emptyNote = `<p class="note">За выбранный период таких объявлений нет.</p>`;
   const group = (fn, keys) => { const m = new Map(); for(const r of rows){ const k = fn(r); const g = m.get(k)||{n:0,dv:0,dp:0}; g.n++; g.dv+=r.dv; g.dp+=r.dp; m.set(k,g); } return keys.filter(k=>m.has(k)).map(k=>[k,m.get(k)]); };
   const byRooms = group(r => roomKey(r.a.r), ["1","2","3","4+","?"]);
   const byPrice = group(r => !r.ppm ? "?" : r.ppm < 1200 ? "до 1200" : r.ppm < 1400 ? "1200–1400" : r.ppm < 1600 ? "1400–1600" : "1600+", ["до 1200","1200–1400","1400–1600","1600+","?"]);
@@ -612,13 +617,26 @@ function topSection(title, sub, rows, mode){
   const fastN = rows.filter(r => isFast(r.id)).length;
   return `<div class="panel sec"><h2>${title} · ${fmt(rows.length)}</h2><p class="note" style="margin-top:-4px">${sub} 🚀 быстрый старт: ${fastN}.</p>
     <div class="grid2">${tbl("По комнатности", byRooms)}${tbl("По цене за м², €", byPrice)}</div>
-    <h3 class="sec">ТОП-30 по открытиям номера</h3>${`<div class="cgrid">${rows.slice(0,30).map(r => adCard(r, mode)).join("")}</div>`}</div>`;
+    <h3 class="sec">${topLabel}</h3>${rows.length ? `<div class="cgrid">${rows.slice(0,30).map(r => adCard(r, mode, opts.card)).join("")}</div>` : emptyNote}</div>`;
 }
 function viewTop(A, mode){
-  const all = adRows(A,true).filter(r => r.dv || r.dp).sort((a,b) => b.dp-a.dp || b.dv-a.dv);
-  return mode === "organic"
-    ? topSection("Топ органика", "Без продвижения и без поднятий в выбранном периоде: что работает само по себе. Дата на карточке — размещение.", all.filter(r => !r.raises && !r.promo), "organic")
-    : topSection("Топ продвижение", "С VIP, выделением или поднятием в выбранном периоде. Дата на карточке — начало рекламы и последнее поднятие.", all.filter(r => r.raises || r.promo), "promo");
+  const byGain = (a,b) => b.dp-a.dp || b.dv-a.dv;
+  const byTotal = (a,b) => (b.a.p||0)-(a.a.p||0) || (b.a.v||0)-(a.a.v||0);
+  const all = adRows(A,true).filter(r => r.dv || r.dp).sort(byGain);
+  if(mode === "organic"){
+    const org = all.filter(r => !r.raises && !r.promo);
+    // дата первого размещения (lt0 не меняется при поднятии); если её нет — считаем «раньше периода»
+    const daySet = new Set(A.days), first = A.days[0];
+    const origTs = r => r.a.lt0 || r.a.fs;
+    const isNew = r => { const t = origTs(r); if(!t) return false; const d = dayOfTs(t); return daySet.has(d) || (first && d >= first && d <= A.days[A.days.length-1]); };
+    const fresh = org.filter(isNew), older = org.filter(r => !isNew(r));
+    return topSection("Новые объявления периода · топ органика", "Размещены в выбранном периоде, без продвижения и поднятий. Цифры «+» — прирост просмотров и открытий номера за период.", fresh, "organic", {card:{plus:true}, topLabel:"ТОП-30 новых по открытиям номера"})
+         + topSection("Размещены раньше, но смотрели в периоде · топ органика", "Размещены до выбранного периода, без продвижения и поднятий в нём. «+» — прирост за период, ниже — всего с размещения.", older, "organic", {card:{plus:true, total:true}, topLabel:"ТОП-30 ранее размещённых по приросту открытий номера"});
+  }
+  const promo = all.filter(r => r.raises || r.promo);
+  const total = promo.slice().sort(byTotal);
+  return topSection("В продвижении в периоде · прирост за период", "С VIP, выделением или поднятием в выбранном периоде. Сортировка по приросту открытий номера и просмотров за период («+»). Дата на карточке — начало рекламы и последнее поднятие.", promo, "promo", {card:{plus:true}, topLabel:"ТОП-30 по приросту открытий номера за период"})
+       + topSection("В продвижении в периоде · суммарный топ", "Те же объявления, но по общему числу открытий номера с момента размещения (счётчики Kufar), с приростом за период. Общий результат нельзя целиком считать итогом рекламы: часть открытий могла быть до неё.", total, "promo", {card:{plus:true, total:true}, topLabel:"ТОП-30 по общему числу открытий номера"});
 }
 
 // ---------- Продвижение (логика Kufar Promo Intelligence)
