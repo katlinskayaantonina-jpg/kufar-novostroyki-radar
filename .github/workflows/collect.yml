@@ -27,3 +27,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           RADAR_KEY: ${{ secrets.RADAR_KEY }}
         run: python collector/radar.py
+# Manual collector recovery trigger, 2026-11-06; no schedule or collection logic changes.
