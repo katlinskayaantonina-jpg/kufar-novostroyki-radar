@@ -87,10 +87,36 @@ def load_private_config() -> dict:
     key = os.environ.get("RADAR_KEY", "").strip()
     if enc.exists() and key:
         from crypto import decrypt  # noqa: E402
-        return json.loads(decrypt(enc.read_bytes(), key).decode("utf-8"))
-    if plain.exists():
-        return json.loads(plain.read_text(encoding="utf-8"))
-    raise RuntimeError("Нет конфигурации компаний (config/private.enc + RADAR_KEY)")
+        cfg = json.loads(decrypt(enc.read_bytes(), key).decode("utf-8"))
+    elif plain.exists():
+        cfg = json.loads(plain.read_text(encoding="utf-8"))
+    else:
+        raise RuntimeError("Нет конфигурации компаний (config/private.enc + RADAR_KEY)")
+
+    # Public competitor metadata is layered over the encrypted settings.
+    public = ROOT / "config" / "public_competitors.json"
+    if public.exists():
+        companies = cfg["companies"]
+        profiles = cfg.setdefault("profiles", {})
+        for item in json.loads(public.read_text(encoding="utf-8")):
+            unp = str(item["unp"]).strip()
+            pid = str(item["profile_id"]).strip()
+            if not (unp.isdigit() and pid.isdigit()):
+                raise ValueError("Invalid public competitor ID / UNP")
+            matches = [k for k, c in companies.items()
+                       if unp in {str(v) for v in c.get("unp", [])}]
+            if len(matches) > 1:
+                raise ValueError("Duplicate company UNP in radar config")
+            company_key = matches[0] if matches else str(item["key"])
+            if not matches:
+                if company_key in companies:
+                    raise ValueError("Competitor company key already used")
+                companies[company_key] = {"label": item["label"], "unp": [unp]}
+            existing = profiles.get(pid)
+            if existing and existing.get("company") not in (None, "", company_key):
+                raise ValueError("Profile belongs to another company")
+            profiles[pid] = {**(existing or {}), "company": company_key, "name": item["profile_name"]}
+    return cfg
 
 
 # ---------------------------------------------------------------- HTTP
