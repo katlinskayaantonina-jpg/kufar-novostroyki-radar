@@ -1,6 +1,6 @@
 import page from "./dashboard.html";
 import { freshnessState, readLastRun, watchdogAlive } from "./health.mjs";
-import { recoverCollection } from "./recovery.mjs";
+import { runCollectionSlot } from "./recovery.mjs";
 
 const DATA_KEYS = new Set(["catalog", "cube", "status"]);
 const HEALTH_HEADERS = {
@@ -85,14 +85,14 @@ export default {
     }
     let recovery;
     try {
-      recovery = await recoverCollection(state, env.GITHUB_ACTIONS_TOKEN, now * 1000);
+      recovery = await runCollectionSlot(controller.scheduledTime, env.GITHUB_ACTIONS_TOKEN);
     } catch (error) {
       recovery = "error";
-      console.error("Radar recovery failed:", String(error));
+      console.error("Radar scheduled dispatch failed:", String(error));
     }
     await env.DATA.put("watchdog", JSON.stringify({
       checked_at: now, state, last_run: lastRun, recovery,
     }), { expirationTtl: 2 * 24 * 3600 });
-    console.log("radar-watchdog", JSON.stringify({state, checked_at:now}));
+    console.log("radar-watchdog", JSON.stringify({state, checked_at:now, recovery}));
   },
 };

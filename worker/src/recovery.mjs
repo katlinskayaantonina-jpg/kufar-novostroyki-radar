@@ -1,8 +1,19 @@
 const WORKFLOW = "https://api.github.com/repos/katlinskayaantonina-jpg/kufar-novostroyki-radar/actions/workflows/collect.yml";
-const RECENT_RUN_MS = 30 * 60 * 1000;
+const SLOT_MS = 30 * 60 * 1000;
 
-export async function recoverCollection(state, token, nowMs, request = fetch) {
-  if (!token || !["stale", "unknown"].includes(state)) return "skipped";
+export function collectionSlot(scheduledMs) {
+  const local = new Date(scheduledMs + 3 * 60 * 60 * 1000);
+  const hour = local.getUTCHours();
+  const minute = local.getUTCMinutes();
+  // Midnight is the last slot. 00:15 is its retry.
+  if (hour < 8 && (hour !== 0 || minute >= 30)) return null;
+  return Math.floor(scheduledMs / SLOT_MS) * SLOT_MS;
+}
+
+export async function runCollectionSlot(scheduledMs, token, request = fetch) {
+  const slot = collectionSlot(scheduledMs);
+  if (slot === null) return "night_pause";
+  if (!token) throw new Error("GitHub Actions token is missing");
 
   const headers = {
     "Accept": "application/vnd.github+json",
@@ -17,8 +28,9 @@ export async function recoverCollection(state, token, nowMs, request = fetch) {
 
   const { workflow_runs: recentRuns } = await runs.json();
   if (!Array.isArray(recentRuns)) throw new Error("GitHub response missing workflow_runs");
-  if (recentRuns.some(run => run.status !== "completed" ||
-      nowMs - Date.parse(run.created_at) < RECENT_RUN_MS)) return "recent_run";
+  if (recentRuns.some(run => run.status !== "completed")) return "run_active";
+  if (recentRuns.some(run => run.conclusion === "success" &&
+      Date.parse(run.created_at) >= slot)) return "slot_complete";
 
   const dispatch = await request(`${WORKFLOW}/dispatches`, {
     method: "POST", headers, body: JSON.stringify({ ref: "main" }),

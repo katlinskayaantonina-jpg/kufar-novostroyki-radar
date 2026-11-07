@@ -2,7 +2,7 @@
 export const STALE_AFTER_SECONDS = 90 * 60;
 export const WATCHDOG_LATE_AFTER_SECONDS = 35 * 60;
 
-// Data collection normally runs 08:07–00:07 Minsk.
+// Data collection normally runs 08:00–00:00 Minsk.
 // Ignore the expected overnight gap; allow time for each collection to finish.
 export function isCollectionExpected(nowSeconds) {
   const secondOfDay = ((nowSeconds + 3 * 3600) % 86400 + 86400) % 86400;
