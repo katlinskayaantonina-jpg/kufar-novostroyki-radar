@@ -44,6 +44,7 @@ HOT_FIRST_SEEN_DAYS = 2
 COLD_EVERY_HOURS = 6
 COLD_CAP = 1800
 COUNTER_WORKERS = 6
+PROFILE_BUDGET_SECONDS = 6 * 60
 EXACT_MAX_MIN = 80         # интервал до 80 минут — приписываем конкретному часу
 NIGHT_BUCKET = 24          # ночь между последним вечерним и первым утренним замером
 SPREAD_BUCKET = 25         # длинный интервал днём — час неизвестен
@@ -120,23 +121,44 @@ def load_private_config() -> dict:
 
 
 # ---------------------------------------------------------------- HTTP
-def http_get(url: str, *, params=None, headers=None, timeout=(8, 45), attempts=5, allow_redirects=True):
+class FeedDeadline(Exception):
+    pass
+
+
+def remaining_time(deadline):
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise FeedDeadline
+    return remaining
+
+
+def retry_sleep(seconds, deadline):
+    if deadline is not None:
+        seconds = min(seconds, remaining_time(deadline))
+    time.sleep(seconds)
+
+
+def http_get(url: str, *, params=None, headers=None, timeout=(8, 45), attempts=5, allow_redirects=True, deadline=None):
     last = None
     for i in range(attempts):
+        request_timeout = timeout
+        if deadline is not None:
+            remaining = remaining_time(deadline)
+            request_timeout = tuple(min(limit, remaining / 2) for limit in timeout)
         try:
-            r = requests.get(url, params=params, headers=headers or H, timeout=timeout, allow_redirects=allow_redirects)
+            r = requests.get(url, params=params, headers=headers or H, timeout=request_timeout, allow_redirects=allow_redirects)
             if r.status_code in (408, 425, 429, 500, 502, 503, 504):
                 STATS[f"http_{r.status_code}"] += 1
                 ra = r.headers.get("Retry-After")
                 delay = float(ra) if ra and ra.isdigit() else (2, 5, 10, 20, 30)[i]
-                time.sleep(min(delay, 60))
+                retry_sleep(min(delay, 60), deadline)
                 last = r
                 continue
             return r
         except requests.RequestException as e:
             STATS["net_retry"] += 1
             last = e
-            time.sleep((2, 5, 10, 20, 30)[i])
+            retry_sleep((2, 5, 10, 20, 30)[i], deadline)
     if isinstance(last, requests.Response):
         return last
     raise last  # type: ignore[misc]
@@ -149,20 +171,20 @@ def next_token(data: dict) -> str:
     return ""
 
 
-def crawl(params: dict, max_pages: int = 120, stop=None) -> tuple[list[dict], bool]:
+def crawl(params: dict, max_pages: int = 120, stop=None, deadline=None) -> tuple[list[dict], bool]:
     """Все страницы выдачи. stop(ads_on_page) -> True прерывает. Возвращает (объявления, дошли_до_конца)."""
     out, cursor, pages, seen = [], "", 0, set()
     while pages < max_pages:
         p = dict(params, size="200", lang="ru")
         if cursor:
             p["cursor"] = cursor
-        r = http_get(SEARCH_API, params=p)
+        r = http_get(SEARCH_API, params=p, deadline=deadline)
         for wait in (20, 60):
             if r.status_code != 403:
                 break
             STATS["search_403"] += 1
-            time.sleep(wait)
-            r = http_get(SEARCH_API, params=p)
+            retry_sleep(wait, deadline)
+            r = http_get(SEARCH_API, params=p, deadline=deadline)
         if r.status_code != 200:
             raise RuntimeError(f"search HTTP {r.status_code}")
         data = r.json()
@@ -511,9 +533,13 @@ def main() -> int:
     feed_seen: set[str] = set()
     ad_profile: dict[str, str] = {}
     feed_ok = True
-    for pid, p in sorted(profiles.items()):
-        if p.get("company") not in companies:
-            continue
+    feed_deadline = time.monotonic() + PROFILE_BUDGET_SECONDS
+    profile_ids = sorted(pid for pid, p in profiles.items() if p.get("company") in companies)
+    resume = state.pop("profile_resume", None)
+    if resume in profile_ids:
+        start = profile_ids.index(resume)
+        profile_ids = profile_ids[start:] + profile_ids[:start]
+    for index, pid in enumerate(profile_ids):
         cutoff = int(state.get("last_run") or 0) - 3 * 3600
 
         def stop(page_ads, cutoff=cutoff):
@@ -524,7 +550,18 @@ def main() -> int:
             return bool(lts) and max(lts) < cutoff
 
         try:
-            feed, _ = crawl({"atid": pid, "typ": "sell", "prn": "1000", "sort": "lst.d"}, max_pages=120, stop=stop)
+            feed, reached_end = crawl(
+                {"atid": pid, "typ": "sell", "prn": "1000", "sort": "lst.d"},
+                max_pages=120, stop=stop, deadline=feed_deadline,
+            )
+            if full_feeds and not reached_end:
+                feed_ok = False
+        except FeedDeadline:
+            feed_ok = False
+            STATS["feed_budget_skipped"] = len(profile_ids) - index
+            state["profile_resume"] = profile_ids[(index + 1) % len(profile_ids)]
+            log(f"Лимит обхода профилей: осталось {len(profile_ids) - index}")
+            break
         except Exception:  # noqa: BLE001
             feed_ok = False
             STATS["feed_err"] += 1
@@ -544,7 +581,10 @@ def main() -> int:
     # --- 2b. дополнительные запросы (для компаний без профилей сотрудников)
     for q in cfg.get("extra_queries") or []:
         try:
-            extra, _ = crawl(dict(q, sort="lst.d"), max_pages=10)
+            extra, _ = crawl(dict(q, sort="lst.d"), max_pages=10, deadline=feed_deadline)
+        except FeedDeadline:
+            STATS["extra_budget_skipped"] += 1
+            break
         except Exception:  # noqa: BLE001
             STATS["extra_err"] += 1
             continue
@@ -804,7 +844,7 @@ def main() -> int:
     duration = round(time.time() - t_start)
     status = {
         "last_run": run_ts, "duration_s": duration, "bootstrap": bootstrap,
-        "district_complete": district_complete, "full_feeds": full_feeds,
+        "district_complete": district_complete, "full_feeds": full_feeds, "feeds_ok": feed_ok,
         "stats": dict(STATS), "sizes": {"state": size_state, "cube": size_cube, "catalog": size_cat},
         "polygon_source": state.get("polygon_source"),
     }
