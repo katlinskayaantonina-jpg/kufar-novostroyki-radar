@@ -41,7 +41,7 @@ details.fbox>summary{cursor:pointer;font-weight:600;list-style:none;display:flex
 details.fbox>summary::-webkit-details-marker{display:none}
 details.fbox[open]>summary{margin-bottom:10px}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
+.wrap{max-width:1580px;margin:0 auto;padding:20px 16px 60px}
 header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 h1{font-size:24px;margin:0;letter-spacing:-.01em}
 .sub{color:var(--ink-2);margin-top:2px}
@@ -106,7 +106,7 @@ a{color:var(--views)}
 .more{margin:10px auto;display:block}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:10px}
 .cgrid.one{grid-template-columns:1fr}
-.cgrid:not(.one){grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr))}
+.cgrid:not(.one){grid-template-columns:repeat(5,minmax(0,1fr))}
 .cgrid:not(.one) .acard{flex-direction:column;padding:0;overflow:hidden;gap:0}
 .cgrid:not(.one) .acard img,.cgrid:not(.one) .acard .noimg{width:100%;height:auto;aspect-ratio:4/3;border-radius:0}
 .cgrid:not(.one) .ab{padding:8px 10px 10px}
@@ -138,6 +138,12 @@ tr.toprow td:first-child{font-weight:700}
 select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px}
 
 .pgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pgrid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.promo-kpis{gap:8px;margin-bottom:8px}
+.promo-kpis .kpi{padding:6px 10px;min-height:70px}
+.promo-kpis .kpi .v{font-size:23px;line-height:1.15}
+.promo-kpis .kpi .k{font-size:12px;line-height:1.2}
+.promo-kpis .kpi .h{font-size:10px;line-height:1.15;margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .pgrid3.tiny{margin-top:10px;font-size:12px;text-align:center}
 .agentcard{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
@@ -156,7 +162,10 @@ tr.lead td{background:var(--accent-soft)}
 .hbar{display:grid;grid-template-columns:minmax(90px,170px) 1fr auto;gap:8px;align-items:center;margin:8px 0;font-size:12px}
 .hbar .track{height:10px;border-radius:999px;background:var(--surface-2);overflow:hidden}.hbar .track div{height:100%;background:var(--views);border-radius:999px}
 .lg{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 8px;font-size:12px;cursor:pointer}.lg.off{opacity:.35;text-decoration:line-through}
-@media (max-width:820px){.pgrid3,.pgrid2{grid-template-columns:1fr}}
+@media (max-width:1340px){.cgrid:not(.one){grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:1060px){.cgrid:not(.one){grid-template-columns:repeat(3,minmax(0,1fr))}.pgrid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:820px){.pgrid3,.pgrid2,.pgrid4{grid-template-columns:1fr}.cgrid:not(.one){grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.cgrid:not(.one){grid-template-columns:1fr}}
 
 @media (max-width:640px){ .lbl{min-width:auto;width:100%} .kpi .v{font-size:22px} h1{font-size:20px} }
 </style>
@@ -177,23 +186,15 @@ tr.lead td{background:var(--accent-soft)}
       <span class="lbl">Свой период</span>
       <input type="date" id="dFrom"> — <input type="date" id="dTo">
     </div>
-    <div class="row" id="weekdays"><span class="lbl">Дни недели</span></div>
     <div class="row">
       <span class="lbl">Компания</span>
       <span id="companies"></span>
-    </div>
-    <div class="row">
-      <span class="lbl">Сотрудники</span>
+      <span class="lbl" style="min-width:auto;margin-left:12px">Сотрудники</span>
       <div class="emp-box">
         <button class="btn" id="empBtn" aria-expanded="false">Все сотрудники ▾</button>
         <div class="emp-list" id="empList" hidden></div>
       </div>
-      <span class="lbl" style="min-width:auto;margin-left:8px">Комнат</span>
-      <span id="rooms"></span>
-    </div>
-    <div class="row">
-      <input type="search" id="q" placeholder="Поиск по заголовку, адресу или номеру объявления">
-      <label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="newOnly" checked> только новостройки</label>
+      <label class="chip" style="display:inline-flex;gap:6px;align-items:center;margin-left:auto"><input type="checkbox" id="newOnly" checked> только новостройки</label>
       <button class="btn" id="reset">Сбросить фильтры</button>
     </div>
   </section></details>
@@ -262,7 +263,7 @@ function periodDays(){
   else from = addDays(t, -(parseInt(S.period,10)-1));
   if(from > to) [from, to] = [to, from];
   const out = [];
-  for(let d = from; d <= to; d = addDays(d,1)){ if(!S.wd.size || S.wd.has(wdOf(d))) out.push(d); if(out.length > 400) break; }
+  for(let d = from; d <= to; d = addDays(d,1)){ out.push(d); if(out.length > 400) break; }
   return out;
 }
 function adOk(id, a){
@@ -270,15 +271,9 @@ function adOk(id, a){
   if(S.newOnly && !a.nw) return false;
   if(S.company !== "all" && a.c !== S.company) return false;
   if(S.emps.size && !S.emps.has(empKey(a))) return false;
-  if(S.rooms.size && !S.rooms.has(roomKey(a.r))) return false;
-  if(S.q){
-    const q = S.q.toLowerCase();
-    if(!(id.includes(q) || (a.t||"").toLowerCase().includes(q) || (a.ad||"").toLowerCase().includes(q))) return false;
-  }
   return true;
 }
 function vhOk(pid, rooms){
-  if(S.rooms.size && !S.rooms.has(roomKey(rooms))) return false;
   if(S.emps.size && !S.emps.has("p:"+pid)) return false;
   if(S.company !== "all"){ const p = CAT.profiles[pid]; if(!p || p.company !== S.company) return false; }
   return true;
@@ -622,7 +617,6 @@ function topSection(title, sub, rows, mode, opts){
     ${g.map(([k,v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v.n)}</td><td class="num">${fmt1(v.dp/v.n)}</td><td class="num">${fmt1(v.dv/v.n)}</td><td class="num">${pct(v.dp,v.dv)}</td></tr>`).join("")}</tbody></table></div></div>`;
   const fastN = rows.filter(r => isFast(r.id)).length;
   return `<div class="panel sec"><h2>${title} · ${fmt(rows.length)}</h2><p class="note" style="margin-top:-4px">${sub} 🚀 быстрый старт: ${fastN}.</p>
-    <div class="grid2">${tbl("По комнатности", byRooms)}${tbl("По цене за м², €", byPrice)}</div>
     <h3 class="sec">${topLabel}${toggle}</h3>${rows.length ? `<div class="cgrid">${sorted.slice(0,30).map(r => adCard(r, mode, opts.card)).join("")}</div>` : emptyNote}</div>`;
 }
 function viewTop(A, mode){
@@ -798,7 +792,7 @@ function viewPromo(){
   // KPI
   const ids = new Set(P.promoDaily.map(x=>x.ad_id)), vipIds = new Set(P.promoDaily.filter(x=>x.promo_status==="vip").map(x=>x.ad_id)), hiIds = new Set(P.promoDaily.filter(x=>x.promo_status==="highlight").map(x=>x.ad_id));
   const views = P.effectDaily.reduce((s,x)=>s+x.views,0), phones = P.effectDaily.reduce((s,x)=>s+x.phoneviews,0);
-  let h = `<div class="kpis">
+  let h = `<div class="kpis promo-kpis">
     ${kpi(fmt(ids.size),"Объявлений в продвижении",`уникальных за период · VIP: ${fmt(vipIds.size)}, выделение без VIP: ${fmt(hiIds.size)} (одно объявление может быть в обеих)`)}
     ${kpi(fmt(views),"Просмотры рекламы","VIP + выделение")}
     ${kpi(fmt(phones),"Открытия телефона","на рекламируемых объявлениях")}
@@ -808,11 +802,18 @@ function viewPromo(){
   const cur = pCurrent(), groups = new Map();
   for(const x of cur){ if(!groups.has(x.agent)) groups.set(x.agent,[]); groups.get(x.agent).push(x); }
   const vipFirst = (x,y) => (x.status==="vip") === (y.status==="vip") ? 0 : x.status==="vip" ? -1 : 1;
+  const fixed = new Set(cfg.main_agents);
+  const candidates = [...groups.entries()].filter(([name]) => !fixed.has(name));
+  candidates.sort((a,b) => b[1].length-a[1].length ||
+    b[1].filter(x=>x.status==="vip").length-a[1].filter(x=>x.status==="vip").length ||
+    a[0].localeCompare(b[0],"ru"));
+  const fourth = candidates.length ? candidates[0][0] : null;
+  const shownAgents = [...cfg.main_agents, ...(fourth ? [fourth] : [])];
   h += `<div class="panel sec"><h2>Сейчас в рекламе <span class="pill" style="font-size:11px">последний обход ${dtLocal(CAT.generated)}</span></h2>
-    <p class="note" style="margin-top:-4px">Только объявления, подтверждённые в последнем обходе. Не зависит от выбранного периода.</p><div class="pgrid3">` +
-    cfg.main_agents.map(a => { const rows = (groups.get(a)||[]).sort(vipFirst);
-      return `<div class="agentcard"><div class="agenttop"><b>${esc(a)}</b><span class="muted">VIP ${rows.filter(x=>x.status==="vip").length} · без VIP ${rows.filter(x=>x.status==="highlight").length}</span></div>${rows.map(pAdLine).join("") || `<div class="muted" style="padding:12px 0">Сейчас активной рекламы нет</div>`}</div>`; }).join("") + `</div>`;
-  const others = [...groups.entries()].filter(([a]) => !cfg.main_agents.includes(a)).sort((a,b)=>pOrder(a[0],b[0]));
+    <p class="note" style="margin-top:-4px">Только объявления последнего обхода. Три постоянных сотрудника и четвёртый — по числу активных рекламных объявлений (при равенстве — по VIP).</p><div class="pgrid4">` +
+    shownAgents.map(a => { const rows = (groups.get(a)||[]).sort(vipFirst);
+      return `<div class="agentcard"><div class="agenttop"><b>${esc(a)}${a===fourth ? " · лидер остальных" : ""}</b><span class="muted">VIP ${rows.filter(x=>x.status==="vip").length} · без VIP ${rows.filter(x=>x.status==="highlight").length}</span></div>${rows.map(pAdLine).join("") || `<div class="muted" style="padding:12px 0">Сейчас активной рекламы нет</div>`}</div>`; }).join("") + `</div>`;
+  const others = candidates.filter(([a]) => a!==fourth).sort((a,b)=>pOrder(a[0],b[0]));
   h += `<div class="row sec">${others.length ? others.map(([a,r]) => `<button class="chip" data-pother="${esc(a)}" aria-pressed="${PS.other===a}">${esc(a)} · VIP ${r.filter(x=>x.status==="vip").length} · без VIP ${r.filter(x=>x.status==="highlight").length}</button>`).join("") : `<span class="muted">Других активных риелторов сейчас нет</span>`}</div>`;
   if(PS.other && groups.has(PS.other)) h += `<div class="agentcard sec"><div class="agenttop"><b>${esc(PS.other)}</b><button class="btn" data-pother="">Закрыть</button></div><div class="pgrid2">${groups.get(PS.other).sort(vipFirst).map(pAdLine).join("")}</div></div>`;
   h += `</div>`;
@@ -895,12 +896,10 @@ function renderControls(){
   const P = [["today","Сегодня"],["yesterday","Вчера"],["7","7 дней"],["30","30 дней"],["90","90 дней"],["all","Всё время"],["custom","Свой период"]];
   $("#periods").innerHTML = `<span class="lbl">Период</span>` + P.map(([k,l]) => `<button class="chip" data-period="${k}" aria-pressed="${S.period===k}">${l}</button>`).join("");
   $("#customRow").hidden = S.period !== "custom";
-  $("#weekdays").innerHTML = `<span class="lbl">Дни недели</span>` + WD.map((w,i) => `<button class="chip" data-wd="${i}" aria-pressed="${S.wd.has(i)}">${w}</button>`).join("");
   $("#companies").innerHTML = [["all","Все"], ...Object.entries(CAT.companies)].map(([k,l]) => `<button class="chip" data-company="${k}" aria-pressed="${S.company===k}">${esc(l)}</button>`).join(" ");
-  $("#rooms").innerHTML = ["1","2","3","4+"].map(r => `<button class="chip" data-room="${r}" aria-pressed="${S.rooms.has(r)}">${r}</button>`).join(" ");
   $("#tabs").innerHTML = TABS.map(([k,l]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join("");
   const P2 = Object.fromEntries(P);
-  $("#fsum").textContent = [P2[S.period], S.company!=="all" ? CAT.companies[S.company] : "", S.emps.size ? "сотрудников: "+S.emps.size : "", S.rooms.size ? [...S.rooms].join(",")+" комн." : "", S.wd.size ? [...S.wd].sort().map(i=>WD[i]).join(",") : ""].filter(Boolean).join(" · ");
+  $("#fsum").textContent = [P2[S.period], S.company!=="all" ? CAT.companies[S.company] : "", S.emps.size ? "сотрудников: "+S.emps.size : ""].filter(Boolean).join(" · ");
   $("#empBtn").textContent = (S.emps.size ? `Выбрано: ${S.emps.size}` : "Все сотрудники") + " ▾";
 }
 function renderEmpList(){
@@ -926,18 +925,16 @@ document.addEventListener("click", ev => {
   if(tk){ const [id,k] = tk.dataset.topkey.split(":"); TOPKEY[id] = k; render(); return; }
   const ga = ev.target.closest("[data-area]");
   if(ga){ openGroup(ga.dataset.area); return; }
-  const t = ev.target.closest("[data-period],[data-wd],[data-company],[data-room],[data-tab],[data-sort],[data-ad],[data-emp],[data-more],#reset,#empBtn,#empClear,#closeDrawer");
+  const t = ev.target.closest("[data-period],[data-company],[data-tab],[data-sort],[data-ad],[data-emp],[data-more],#reset,#empBtn,#empClear,#closeDrawer");
   if(!t){ if(!ev.target.closest(".emp-box")) $("#empList").hidden = true; if(ev.target.id==="drawer") $("#drawer").style.display="none"; return; }
   if(t.dataset.period){ S.period = t.dataset.period; if(S.period==="custom" && !S.from){ S.to = todayStr(); S.from = addDays(S.to,-13); $("#dFrom").value=S.from; $("#dTo").value=S.to; } }
-  else if(t.dataset.wd){ const i = +t.dataset.wd; S.wd.has(i) ? S.wd.delete(i) : S.wd.add(i); }
   else if(t.dataset.company){ S.company = t.dataset.company; }
-  else if(t.dataset.room){ const r = t.dataset.room; S.rooms.has(r) ? S.rooms.delete(r) : S.rooms.add(r); }
   else if(t.dataset.tab){ S.tab = t.dataset.tab; S.limit = 60; }
   else if(t.dataset.sort){ const [tab,key] = t.dataset.sort.split(":"); const cur = S.sort[tab]; S.sort[tab] = {key, dir: cur && cur.key===key ? -cur.dir : -1}; }
   else if(t.dataset.ad){ openAd(t.dataset.ad); return; }
   else if(t.dataset.emp){ S.emps = new Set([t.dataset.emp]); S.tab = "ads"; }
   else if(t.dataset.more){ S.limit += 60; }
-  else if(t.id === "reset"){ Object.assign(S, {period:"7", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, limit:60}); delete S.sort.emp; $("#q").value=""; $("#newOnly").checked=true; }
+  else if(t.id === "reset"){ Object.assign(S, {period:"7", company:"all", emps:new Set(), newOnly:true, limit:60}); delete S.sort.emp; $("#newOnly").checked=true; }
   else if(t.id === "empBtn"){ const L = $("#empList"); if(L.hidden){ renderEmpList(); L.hidden = false; } else L.hidden = true; return; }
   else if(t.id === "empClear"){ S.emps.clear(); renderEmpList(); }
   else if(t.id === "closeDrawer"){ $("#drawer").style.display = "none"; return; }
@@ -953,7 +950,6 @@ document.addEventListener("change", ev => {
 });
 let qTimer;
 document.addEventListener("input", ev => {
-  if(ev.target.id === "q"){ clearTimeout(qTimer); qTimer = setTimeout(() => { S.q = ev.target.value.trim(); S.limit = 60; render(); }, 200); }
   if(ev.target.id === "empQ"){ const q = ev.target.value.toLowerCase(); document.querySelectorAll("#empItems label").forEach(l => l.style.display = l.dataset.name.includes(q) ? "" : "none"); }
 });
 document.addEventListener("keydown", ev => { if(ev.key === "Escape"){ $("#drawer").style.display = "none"; $("#empList").hidden = true; } });
