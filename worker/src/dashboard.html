@@ -77,6 +77,10 @@ h2{font-size:17px;margin:4px 0 10px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(520px,100%),1fr));gap:12px}
 .sec{margin-top:12px}
 .tbl-wrap.emp th{white-space:normal;vertical-align:bottom}
+.tbl-wrap.emp table{table-layout:fixed;min-width:1160px;width:100%}
+.tbl-wrap.emp td,.tbl-wrap.emp th{padding-left:6px;padding-right:6px}
+.tbl-wrap.emp td:first-child{white-space:normal;overflow-wrap:anywhere}
+.tbl-wrap.emp .employee-name{font-size:18px;line-height:1.25;font-weight:650}
 .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
 table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
 th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;white-space:nowrap}
@@ -176,16 +180,20 @@ tr.lead td{background:var(--accent-soft)}
 .agent-highlight{background:var(--accent-soft);border-radius:4px;padding:1px 4px;color:var(--accent);font-weight:600}
 :root[data-theme="dark"] .agent-highlight{color:#d9f8e9}
 /* Главный экран: компактные фильтры и лидеры выбранного периода */
-.home-strip{display:grid;grid-template-columns:minmax(0,1.28fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.home-strip{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1fr);gap:10px;align-items:stretch}
 .home-strip .fbox{min-width:0}
-.home-strip .fbox .filters{gap:10px}
-.home-strip .fbox .row{gap:6px}
+.home-strip .fbox .filters{gap:7px}
+.home-strip .fbox .row{gap:5px}
 .home-strip .fbox .lbl{min-width:75px}
 .home-strip .fbox #periods .chip{padding:5px 8px;font-size:13px;white-space:nowrap}
-.home-strip #periods{flex-wrap:nowrap;gap:5px}
+.home-strip #periods{flex-wrap:wrap;gap:4px}
 .home-strip #periods .lbl{min-width:72px}
 .home-strip .filter-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-start}
 .home-strip .filter-actions .chip{margin-left:0}
+.home-strip #periods #reset{font-size:12px;padding:6px 8px}
+.home-strip .filter-actions #companies .chip{padding:5px 8px;font-size:12px}
+.home-strip .filter-actions #empBtn{padding:6px 8px;font-size:12px}
+.home-strip .filter-actions label.chip{padding:5px 8px;font-size:12px}
 .leaderboard{position:relative;overflow:hidden;min-width:0;isolation:isolate;border-radius:15px;border:1px solid #5eaa8b;padding:13px 13px 12px;background:radial-gradient(ellipse at 85% 14%,rgba(233,247,214,.49) 0%,transparent 43%),radial-gradient(ellipse at 18% 82%,rgba(54,151,119,.24) 0%,transparent 50%),linear-gradient(125deg,#318a69 0%,#54a888 53%,#428f73 100%);box-shadow:0 2px 8px rgba(21,91,49,.12);color:white}
 .leaderboard:before{content:"";position:absolute;inset:-40px -30px auto 28%;height:100px;border-radius:50%;background:linear-gradient(110deg,transparent,rgba(240,251,220,.27));transform:rotate(-8deg);z-index:-1}
 .leaderboard:after{content:"✦  ❧";position:absolute;right:14px;top:6px;font-size:26px;color:#f6db65;opacity:.78;pointer-events:none}
@@ -282,18 +290,15 @@ tr.lead td{background:var(--accent-soft)}
       <span class="lbl">Свой период</span>
       <input type="date" id="dFrom"> — <input type="date" id="dTo">
     </div>
-    <div class="row">
+    <div class="row filter-actions">
       <span class="lbl">Компания</span>
       <span id="companies"></span>
-    </div>
-    <div class="row filter-actions">
-      <span class="lbl">Сотрудники</span>
+      <span class="lbl" style="min-width:auto;margin-left:6px">Сотрудники</span>
       <div class="emp-box">
         <button class="btn" id="empBtn" aria-expanded="false">Все сотрудники ▾</button>
         <div class="emp-list" id="empList" hidden></div>
       </div>
       <label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="newOnly" checked> только новостройки</label>
-      <button class="btn" id="reset" style="margin-left:auto">Сбросить фильтры</button>
     </div>
   </section></details>
   <aside class="leaderboard" aria-label="Лидеры за выбранный период">
@@ -615,12 +620,12 @@ function viewEmployees(A){
   const cols = ["active","newc","nv","np","ov","op","conv"], best = {};
   for(const c of cols) best[c] = Math.max(...conf.map(e => e[c]||0));
   const cell = (e,c,txt,cls="") => `<td class="num ${cls} ${e.confirmed && e[c] && e[c]===best[c] ? "bestcell" : ""}">${txt}</td>`;
-  const tr = e => `<tr class="clickable ${e.newc===0?"employee-idle":""} ${medal.has(e.k)?"toprow":""}" data-emp="${esc(e.k)}"><td>${medal.get(e.k)||""} ${esc(e.name)}<div class="muted" style="font-size:11px">${esc(e.company)}</div></td>
+  const tr = e => `<tr class="clickable ${e.newc===0?"employee-idle":""} ${medal.has(e.k)?"toprow":""}" data-emp="${esc(e.k)}"><td><span class="employee-name">${medal.get(e.k)||""} ${esc(e.name)}</span><div class="muted" style="font-size:11px">${esc(e.company)}</div></td>
     ${cell(e,"active",fmt(e.active))}${cell(e,"newc",fmt(e.newc),"gs")}${cell(e,"nv",fmt(e.nv))}${cell(e,"np",fmt(e.np))}
     ${cell(e,"ov",fmt(e.ov),"gs")}${cell(e,"op",fmt(e.op))}${cell(e,"conv",e.dv?pct(e.dp,e.dv):"—","gs")}
     <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`;
   const g = h => h.replace('class="num"','class="num gs"');
-  const head = `<thead><tr class="grp"><th></th><th></th><th colspan="3" class="gs">Размещены в выбранном периоде</th><th colspan="2" class="gs">Размещены до выбранного периода, но просмотрены в выбранном периоде</th><th class="gs">Все объявления</th><th colspan="3"></th></tr>
+  const head = `<colgroup><col style="width:15%"><col style="width:8%"><col style="width:9%"><col style="width:8%"><col style="width:8%"><col style="width:9%"><col style="width:9%"><col style="width:11%"><col style="width:7%"><col style="width:9%"><col style="width:7%"></colgroup><thead><tr class="grp"><th></th><th></th><th colspan="3" class="gs">Размещены в выбранном периоде</th><th colspan="2" class="gs">Размещены до выбранного периода, но просмотрены в выбранном периоде</th><th class="gs">Все объявления</th><th colspan="3"></th></tr>
     <tr>${th("emp","name","Сотрудник")}${th("emp","active","Объявлений сейчас",1)}${g(th("emp","newc","Сколько размещено",1))}${th("emp","nv","Просмотры",1)}${th("emp","np","Открыли номер",1)}
     ${g(th("emp","ov","Просмотры",1))}${th("emp","op","Открыли номер",1)}${g(th("emp","conv","Открыли номер, % от просмотров",1))}${th("emp","raises","Поднятий",1)}${th("emp","promo","Продвижений",1)}${th("emp","best","Лучший час",1)}</tr></thead>`;
   return `<h2>Результаты сотрудников</h2>
@@ -1196,7 +1201,7 @@ function render(){
 }
 function renderControls(){
   const P = [["today","Сегодня"],["yesterday","Вчера"],["7","7 дней"],["30","30 дней"],["90","90 дней"],["all","Всё время"],["custom","Свой период"]];
-  $("#periods").innerHTML = `<span class="lbl">Период</span>` + P.map(([k,l]) => `<button class="chip" data-period="${k}" aria-pressed="${S.period===k}">${l}</button>`).join("");
+  $("#periods").innerHTML = `<span class="lbl">Период</span>` + P.map(([k,l]) => `<button class="chip" data-period="${k}" aria-pressed="${S.period===k}">${l}</button>`).join("") + `<button class="btn" id="reset" style="margin-left:auto">Сбросить фильтры</button>`;
   $("#customRow").hidden = S.period !== "custom";
   $("#companies").innerHTML = [["all","Все"], ...Object.entries(CAT.companies)].map(([k,l]) => `<button class="chip" data-company="${k}" aria-pressed="${S.company===k}">${esc(l)}</button>`).join(" ");
   $("#tabs").innerHTML = TABS.map(([k,l]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join("");
