@@ -566,7 +566,7 @@ function adCard(r, mode, opts){
       <div class="am">${esc(a.ad||"")}</div>
       <div class="aw"><span class="agent-highlight">${esc(r.emp)}</span> · ${esc(a.r||"?")}-комн. · ${fmt1(a.a)} м² · ${fmt(eur(a))} €</div>
       <div class="ad8">${dates}</div>
-      <div class="amet"><span><b>${pl}${fmt(r.dv)}</b> просм.</span><span><b>${pl}${fmt(r.dp)}</b> откр. номера</span><span>${r.dv?pct(r.dp,r.dv):"—"}</span></div>
+      <div class="amet"><span><b>${pl}${fmt(r.dv)}</b> просм.</span><span><b>${pl}${fmt(r.dp)}</b> откр. номера</span></div>
       ${opts.total ? `<div class="ad8">Всего с размещ.: <b>${fmt(a.v||0)}</b> просм. · <b>${fmt(a.p||0)}</b> откр.</div>` : ""}
       <div>${promoBadges(a)}${f ? `<span class="badge fast" title="Первые сутки после размещения: ${f[0]} просмотров, ${f[1]} открытий номера">🚀 быстрый старт</span>` : ""}${r.raises ? `<span class="badge">поднятий: ${r.raises}</span>` : ""}</div>
     </div></div>`;
