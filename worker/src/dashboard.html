@@ -140,10 +140,10 @@ select{border:1px solid var(--line);background:var(--surface);border-radius:8px;
 .pgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .pgrid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .promo-kpis{gap:8px;margin-bottom:8px}
-.promo-kpis .kpi{padding:6px 10px;min-height:70px}
+.promo-kpis .kpi{padding:5px 10px;height:76px;overflow:hidden;box-sizing:border-box}
 .promo-kpis .kpi .v{font-size:23px;line-height:1.15}
 .promo-kpis .kpi .k{font-size:12px;line-height:1.2}
-.promo-kpis .kpi .h{font-size:10px;line-height:1.15;margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.promo-kpis .kpi .h{font-size:10px;line-height:1.1;margin-top:1px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
 .pgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .pgrid3.tiny{margin-top:10px;font-size:12px;text-align:center}
 .agentcard{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface)}
@@ -793,7 +793,7 @@ function viewPromo(){
   const ids = new Set(P.promoDaily.map(x=>x.ad_id)), vipIds = new Set(P.promoDaily.filter(x=>x.promo_status==="vip").map(x=>x.ad_id)), hiIds = new Set(P.promoDaily.filter(x=>x.promo_status==="highlight").map(x=>x.ad_id));
   const views = P.effectDaily.reduce((s,x)=>s+x.views,0), phones = P.effectDaily.reduce((s,x)=>s+x.phoneviews,0);
   let h = `<div class="kpis promo-kpis">
-    ${kpi(fmt(ids.size),"Объявлений в продвижении",`уникальных за период · VIP: ${fmt(vipIds.size)}, выделение без VIP: ${fmt(hiIds.size)} (одно объявление может быть в обеих)`)}
+    ${kpi(fmt(ids.size),"Объявлений в продвижении",`VIP: ${fmt(vipIds.size)} · выделение: ${fmt(hiIds.size)}`)}
     ${kpi(fmt(views),"Просмотры рекламы","VIP + выделение")}
     ${kpi(fmt(phones),"Открытия телефона","на рекламируемых объявлениях")}
     ${kpi(views ? (phones/views*100).toLocaleString("ru-RU",{minimumFractionDigits:1,maximumFractionDigits:1})+"%" : "—","Конверсия в открытие","открытия / просмотры")}
