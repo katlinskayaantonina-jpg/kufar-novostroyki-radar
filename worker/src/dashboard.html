@@ -168,6 +168,42 @@ tr.lead td{background:var(--accent-soft)}
 @media (max-width:520px){.cgrid:not(.one){grid-template-columns:1fr}}
 
 @media (max-width:640px){ .lbl{min-width:auto;width:100%} .kpi .v{font-size:22px} h1{font-size:20px} }
+
+/* Главный экран: компактные фильтры и лидеры выбранного периода */
+.home-strip{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:12px;align-items:stretch}
+.home-strip .fbox{min-width:0}
+.home-strip .fbox .filters{gap:10px}
+.home-strip .fbox .row{gap:6px}
+.home-strip .fbox .lbl{min-width:75px}
+.home-strip .fbox #periods .chip{padding:5px 9px}
+.home-strip .filter-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-start}
+.home-strip .filter-actions .chip{margin-left:0}
+.leaderboard{position:relative;overflow:hidden;min-width:0;isolation:isolate;border-radius:15px;border:1px solid #16733a;padding:13px 13px 12px;background:linear-gradient(120deg,#187d3d 0%,#2aa947 47%,#268c35 100%);box-shadow:0 2px 8px rgba(21,91,49,.12);color:white}
+.leaderboard:before{content:"";position:absolute;inset:-40px -30px auto 28%;height:100px;border-radius:50%;background:linear-gradient(110deg,transparent,rgba(165,242,63,.28));transform:rotate(-8deg);z-index:-1}
+.leaderboard:after{content:"✦  ❧";position:absolute;right:14px;top:6px;font-size:26px;color:#f6db65;opacity:.78;pointer-events:none}
+.leaderboard h2{color:#fff;font-size:19px;margin:0 0 10px;display:flex;align-items:center;gap:8px;text-shadow:0 1px 1px rgba(0,0,0,.18)}
+.leaderboard-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.leaderboard-column{min-width:0;border-radius:12px;padding:8px 7px;background:rgba(255,255,255,.92);color:#17221a;box-shadow:0 2px 5px rgba(0,0,0,.08)}
+.leaderboard-column h3{font-size:11px;line-height:1.2;margin:0 0 7px;min-height:26px;display:flex;align-items:center;gap:4px}
+.leaderboard-row{display:grid;grid-template-columns:19px minmax(0,1fr) auto;gap:4px;align-items:center;padding:5px 4px;margin:2px 0;border-radius:8px;font-size:10px;line-height:1.25}
+.leaderboard-row .place{display:grid;place-items:center;width:19px;height:19px;border-radius:50%;font-weight:800;font-size:11px}
+.leaderboard-row .leader-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leaderboard-row .leader-count{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.leaderboard-row.gold{background:linear-gradient(90deg,#ffe49a,#fff3ce);font-weight:750}
+.leaderboard-row.gold .place{background:#f4bc29;color:#513700}
+.leaderboard-row.silver{background:#e9eef1}
+.leaderboard-row.silver .place{background:#b5c2cd;color:#35434c}
+.leaderboard-row.bronze{background:#f4f0eb;color:#635c55}
+.leaderboard-row.bronze .place{background:#d8bdab;color:#6b5446}
+.leaderboard-empty{font-size:12px;color:#385342;padding:12px 5px}
+.employee-idle td{background:#eeeff0!important;color:#73787b}
+.employee-idle .muted{color:#91979a}
+.employee-idle:hover td{background:#e4e7e9!important}
+.employee-more{margin:9px 0 4px}
+.employee-more>summary{cursor:pointer;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);padding:7px 12px;width:max-content;max-width:100%;font-weight:600}
+.employee-more[open]>summary{margin-bottom:8px}
+@media(max-width:1100px){.home-strip{grid-template-columns:1fr}.leaderboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.leaderboard-column h3{min-height:0}}
+@media(max-width:600px){.leaderboard-grid{grid-template-columns:1fr}.leaderboard-row{font-size:12px}.leaderboard-column h3{font-size:12px}}
 </style>
 </head>
 <body>
@@ -180,6 +216,7 @@ tr.lead td{background:var(--accent-soft)}
     <span class="pill" id="status">Загрузка…</span>
   </header>
 
+  <div class="home-strip">
   <details class="panel fbox" id="fbox" open><summary><span>Фильтры</span><span class="muted" id="fsum"></span></summary><section class="filters" aria-label="Фильтры">
     <div class="row" id="periods"></div>
     <div class="row" id="customRow" hidden>
@@ -189,15 +226,22 @@ tr.lead td{background:var(--accent-soft)}
     <div class="row">
       <span class="lbl">Компания</span>
       <span id="companies"></span>
-      <span class="lbl" style="min-width:auto;margin-left:12px">Сотрудники</span>
+    </div>
+    <div class="row filter-actions">
+      <span class="lbl">Сотрудники</span>
       <div class="emp-box">
         <button class="btn" id="empBtn" aria-expanded="false">Все сотрудники ▾</button>
         <div class="emp-list" id="empList" hidden></div>
       </div>
-      <label class="chip" style="display:inline-flex;gap:6px;align-items:center;margin-left:auto"><input type="checkbox" id="newOnly" checked> только новостройки</label>
+      <label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="newOnly" checked> только новостройки</label>
       <button class="btn" id="reset">Сбросить фильтры</button>
     </div>
   </section></details>
+  <aside class="leaderboard" aria-label="Лидеры за выбранный период">
+    <h2>🏆 Лидеры за период</h2>
+    <div id="periodLeaders" class="leaderboard-grid"><div class="leaderboard-empty">Загружаю результаты…</div></div>
+  </aside>
+  </div>
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
   <main id="view"><div class="center">Загружаю данные…</div></main>
@@ -511,7 +555,7 @@ function viewEmployees(A){
   const cols = ["active","newc","nv","np","ov","op","conv"], best = {};
   for(const c of cols) best[c] = Math.max(...conf.map(e => e[c]||0));
   const cell = (e,c,txt,cls="") => `<td class="num ${cls} ${e.confirmed && e[c] && e[c]===best[c] ? "bestcell" : ""}">${txt}</td>`;
-  const tr = e => `<tr class="clickable ${medal.has(e.k)?"toprow":""}" data-emp="${esc(e.k)}"><td>${medal.get(e.k)||""} ${esc(e.name)}<div class="muted" style="font-size:11px">${esc(e.company)}</div></td>
+  const tr = e => `<tr class="clickable ${e.newc===0?"employee-idle":""} ${medal.has(e.k)?"toprow":""}" data-emp="${esc(e.k)}"><td>${medal.get(e.k)||""} ${esc(e.name)}<div class="muted" style="font-size:11px">${esc(e.company)}</div></td>
     ${cell(e,"active",fmt(e.active))}${cell(e,"newc",fmt(e.newc),"gs")}${cell(e,"nv",fmt(e.nv))}${cell(e,"np",fmt(e.np))}
     ${cell(e,"ov",fmt(e.ov),"gs")}${cell(e,"op",fmt(e.op))}${cell(e,"conv",e.dv?pct(e.dp,e.dv):"—","gs")}
     <td class="num">${fmt(e.raises)}</td><td class="num">${fmt(e.promo)}</td><td class="num">${e.best>=0?e.best+":00":"—"}</td></tr>`;
@@ -521,7 +565,8 @@ function viewEmployees(A){
     ${g(th("emp","ov","Просмотры",1))}${th("emp","op","Открыли номер",1)}${g(th("emp","conv","Открыли номер, % от просмотров",1))}${th("emp","raises","Поднятий",1)}${th("emp","promo","Продвижений",1)}${th("emp","best","Лучший час",1)}</tr></thead>`;
   return `<h2>Результаты сотрудников</h2>
   <div class="legend"><span>🥇🥈🥉 — больше всего открытий номера по объявлениям, размещённым в выбранном периоде</span><span><span class="sw" style="background:var(--accent-soft);border:1px solid var(--accent)"></span>лучшее значение в столбце</span></div>
-  <div class="tbl-wrap emp"><table>${head}<tbody>${conf.map(tr).join("")}</tbody></table></div>
+  <div class="tbl-wrap emp"><table>${head}<tbody>${conf.filter(e=>e.newc>0).concat(conf.filter(e=>e.newc===0).slice(0,2)).map(tr).join("")}</tbody></table></div>
+  ${conf.filter(e=>e.newc===0).length>2 ? `<details class="employee-more"><summary>Показать остальных сотрудников без размещений (${conf.filter(e=>e.newc===0).length-2})</summary><div class="tbl-wrap emp"><table>${head}<tbody>${conf.filter(e=>e.newc===0).slice(2).map(tr).join("")}</tbody></table></div></details>` : ""}
   ${unconf.length ? `<details class="sec"><summary class="muted" style="cursor:pointer">Не подтверждены (${unconf.length}) — имя взято из объявления, профиль продавца ещё уточняется</summary><div class="tbl-wrap sec"><table>${head}<tbody>${unconf.map(tr).join("")}</tbody></table></div></details>` : ""}
 ${A.bot ? `<p class="note robot">🤖 <b>Отфильтровано как робот: ${fmt(A.bot)} открытий номера и ${fmt(A.bot)} просмотров</b> на объявлениях, размещённых раньше. Программа каждый день обходит объявления и в каждом один раз открывает номер — такие открытия в цифры выше не входят.</p>` : ""}
   <p class="note"><b>Новые</b> — объявления, размещённые в выбранном периоде: сколько их посмотрели и сколько раз открыли номер. <b>Старые</b> — объявления, размещённые раньше, которые смотрели и открывали в этом периоде. Открытия номера — счётчик Kufar «показы телефона», а не звонки. Нажмите на сотрудника, чтобы посмотреть его объявления.</p>`;
@@ -885,12 +930,40 @@ function openAd(id){
   $("#drawer").style.display = "block";
 }
 
+
+function renderPeriodLeaders(A){
+  // Тот же выбранный период, компания и фильтры, что в таблице сотрудников.
+  // Учитываем именно объявления, впервые размещённые в периоде.
+  const created = new Set(A.events.filter(e=>e[2]==="new").map(e=>e[1]));
+  const m = new Map();
+  for(const id of created){
+    const a=CAT.ads[id];
+    if(!adOk(id,a))continue;
+    const k=empKey(a);
+    if(!k.startsWith("p:"))continue; // только установленные личности продавцов
+    if(!m.has(k))m.set(k,{k,name:empName(k),newc:0,nv:0,np:0});
+    const x=m.get(k),v=A.per.get(id);
+    x.newc++;
+    if(v){x.nv+=v.dv;x.np+=v.dp;}
+  }
+  const people=[...m.values()];
+  const metrics=[["newc","📣 По количеству объявлений"],["nv","👁 По просмотрам"],["np","☎ По открытиям номера"]];
+  const classNames=["gold","silver","bronze"];
+  const html=metrics.map(([key,title])=>{
+    const ordered=people.filter(x=>x[key]>0).sort((a,b)=>b[key]-a[key]||b.newc-a.newc||a.name.localeCompare(b.name,"ru")).slice(0,3);
+    const rows=ordered.length ? ordered.map((x,i)=>`<div class="leaderboard-row ${classNames[i]}" title="${esc(x.name)}"><span class="place">${i+1}</span><span class="leader-name">${esc(x.name)}</span><span class="leader-count">${fmt(x[key])}</span></div>`).join("") : '<div class="leaderboard-empty">Нет результатов за период</div>';
+    return `<section class="leaderboard-column"><h3>${title}</h3>${rows}</section>`;
+  }).join("");
+  $("#periodLeaders").innerHTML=html;
+}
+
 // ---------- отрисовка
 function render(){
   const A = aggregate();
   const V = {overview:viewOverview, ads:viewAds, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, organic:A=>viewTop(A,"organic"), promoted:A=>viewTop(A,"promo")}[S.tab];
   $("#view").innerHTML = V(A);
   renderControls();
+  renderPeriodLeaders(A);
 }
 function renderControls(){
   const P = [["today","Сегодня"],["yesterday","Вчера"],["7","7 дней"],["30","30 дней"],["90","90 дней"],["all","Всё время"],["custom","Свой период"]];
