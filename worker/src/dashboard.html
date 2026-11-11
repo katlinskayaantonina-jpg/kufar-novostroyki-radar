@@ -169,13 +169,14 @@ tr.lead td{background:var(--accent-soft)}
 
 @media (max-width:640px){ .lbl{min-width:auto;width:100%} .kpi .v{font-size:22px} h1{font-size:20px} }
 
-.acard.own-boriskina{border:2px solid #337b60;background:linear-gradient(160deg,#f8fcf9,#edf5f0);box-shadow:0 1px 7px rgba(31,95,74,.10)}
-.acard.own-boriskina .ab{background:linear-gradient(160deg,#f8fcf9,#edf5f0)}
+.acard.own-boriskina{position:relative;border:2px solid #07853e;background:#ecf8f1;box-shadow:0 1px 7px rgba(31,95,74,.10)}
+.acard.own-boriskina .ab{background:#ecf8f1}
 .acard.own-boriskina:hover{box-shadow:0 3px 11px rgba(31,95,74,.18)}
+.acard.own-boriskina:after{content:"своё";position:absolute;top:7px;right:7px;background:#087a39;color:#fff;border:1px solid rgba(255,255,255,.7);border-radius:999px;font-size:11px;line-height:1.1;font-weight:700;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.17);pointer-events:none;z-index:2}
 .agent-highlight{background:var(--accent-soft);border-radius:4px;padding:1px 4px;color:var(--accent);font-weight:600}
 :root[data-theme="dark"] .agent-highlight{color:#d9f8e9}
 /* Главный экран: компактные фильтры и лидеры выбранного периода */
-.home-strip{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.home-strip{display:grid;grid-template-columns:minmax(0,1.28fr) minmax(0,1fr);gap:12px;align-items:stretch}
 .home-strip .fbox{min-width:0}
 .home-strip .fbox .filters{gap:10px}
 .home-strip .fbox .row{gap:6px}
