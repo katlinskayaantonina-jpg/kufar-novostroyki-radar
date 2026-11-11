@@ -318,7 +318,7 @@ const EV_NAMES = {new:"Новое", gone:"Снято", back:"Вернулось"
 const TABS = [["promo","Продвижение"],["ads","Объявления за период"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["organic","Топ органика"],["promoted","Топ продвижение"],["demand","Спрос"]];
 
 let CAT = null, CUBE = null, STATUS = null;
-const S = { period:"7", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"promo", sort:{}, limit:60 };
+const S = { period:"today", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"employees", sort:{}, limit:60 };
 
 const $ = s => document.querySelector(s);
 const fmt = n => n == null ? "—" : Math.round(n).toLocaleString("ru-RU");
@@ -1274,8 +1274,8 @@ function loadState(){ try{ const x = JSON.parse(localStorage.getItem("radar_f")|
 
 // ---------- старт
 (async function(){
-  loadState();
-  if(!TABS.some(t => t[0] === S.tab)) S.tab = "promo";
+  // Всегда используем стартовые фильтры при загрузке страницы.
+  if(!TABS.some(t => t[0] === S.tab)) S.tab = "employees";
   if(innerWidth < 640) $("#fbox").open = false;
   $("#newOnly").checked = S.newOnly;
   try{
@@ -1284,6 +1284,7 @@ function loadState(){ try{ const x = JSON.parse(localStorage.getItem("radar_f")|
     $("#view").innerHTML = `<div class="center">Не удалось загрузить данные. Проверьте ссылку или обновите страницу через минуту.</div>`;
     $("#status").textContent = "Нет данных"; $("#status").classList.add("warn"); return;
   }
+  S.company = Object.entries(CAT.companies).find(([key,label]) => String(label).trim() === "Этажи")?.[0] || "all";
   const rs = Object.values(CAT.ads).filter(a => a.pe && a.pu).map(a => a.pe/a.pu).sort((x,y)=>x-y);
   if(rs.length) EUR_RATE = rs[Math.floor(rs.length/2)];
   removeRobot();
