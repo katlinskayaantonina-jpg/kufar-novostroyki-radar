@@ -169,8 +169,10 @@ tr.lead td{background:var(--accent-soft)}
 
 @media (max-width:640px){ .lbl{min-width:auto;width:100%} .kpi .v{font-size:22px} h1{font-size:20px} }
 
+.agent-highlight{background:var(--accent-soft);border-radius:4px;padding:1px 4px;color:var(--accent);font-weight:600}
+:root[data-theme="dark"] .agent-highlight{color:#d9f8e9}
 /* Главный экран: компактные фильтры и лидеры выбранного периода */
-.home-strip{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.12fr);gap:12px;align-items:stretch}
+.home-strip{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:stretch}
 .home-strip .fbox{min-width:0}
 .home-strip .fbox .filters{gap:10px}
 .home-strip .fbox .row{gap:6px}
@@ -178,14 +180,14 @@ tr.lead td{background:var(--accent-soft)}
 .home-strip .fbox #periods .chip{padding:5px 9px}
 .home-strip .filter-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-start}
 .home-strip .filter-actions .chip{margin-left:0}
-.leaderboard{position:relative;overflow:hidden;min-width:0;isolation:isolate;border-radius:15px;border:1px solid #16733a;padding:13px 13px 12px;background:linear-gradient(120deg,#187d3d 0%,#2aa947 47%,#268c35 100%);box-shadow:0 2px 8px rgba(21,91,49,.12);color:white}
-.leaderboard:before{content:"";position:absolute;inset:-40px -30px auto 28%;height:100px;border-radius:50%;background:linear-gradient(110deg,transparent,rgba(165,242,63,.28));transform:rotate(-8deg);z-index:-1}
+.leaderboard{position:relative;overflow:hidden;min-width:0;isolation:isolate;border-radius:15px;border:1px solid #366c5d;padding:13px 13px 12px;background:radial-gradient(ellipse at 84% 12%,rgba(202,219,170,.38) 0%,transparent 42%),radial-gradient(ellipse at 12% 89%,rgba(14,73,63,.32) 0%,transparent 45%),linear-gradient(130deg,#245d4c 0%,#347963 52%,#1c594f 100%);box-shadow:0 2px 8px rgba(21,91,49,.12);color:white}
+.leaderboard:before{content:"";position:absolute;inset:-40px -30px auto 28%;height:100px;border-radius:50%;background:linear-gradient(110deg,transparent,rgba(225,233,190,.19));transform:rotate(-8deg);z-index:-1}
 .leaderboard:after{content:"✦  ❧";position:absolute;right:14px;top:6px;font-size:26px;color:#f6db65;opacity:.78;pointer-events:none}
 .leaderboard h2{color:#fff;font-size:19px;margin:0 0 10px;display:flex;align-items:center;gap:8px;text-shadow:0 1px 1px rgba(0,0,0,.18)}
-.leaderboard-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.leaderboard-column{min-width:0;border-radius:12px;padding:8px 7px;background:rgba(255,255,255,.92);color:#17221a;box-shadow:0 2px 5px rgba(0,0,0,.08)}
+.leaderboard-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.leaderboard-column{min-width:0;border-radius:12px;padding:8px 5px;background:rgba(255,255,255,.94);color:#17221a;box-shadow:0 2px 5px rgba(0,0,0,.08)}
 .leaderboard-column h3{font-size:11px;line-height:1.2;margin:0 0 7px;min-height:26px;display:flex;align-items:center;gap:4px}
-.leaderboard-row{display:grid;grid-template-columns:19px minmax(0,1fr) auto;gap:4px;align-items:center;padding:5px 4px;margin:2px 0;border-radius:8px;font-size:10px;line-height:1.25}
+.leaderboard-row{display:grid;grid-template-columns:19px minmax(0,1fr) auto;gap:4px;align-items:center;padding:5px 2px;margin:2px 0;border-radius:8px;font-size:10px;line-height:1.25}
 .leaderboard-row .place{display:grid;place-items:center;width:19px;height:19px;border-radius:50%;font-weight:800;font-size:11px}
 .leaderboard-row .leader-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .leaderboard-row .leader-count{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -204,6 +206,57 @@ tr.lead td{background:var(--accent-soft)}
 .employee-more[open]>summary{margin-bottom:8px}
 @media(max-width:1100px){.home-strip{grid-template-columns:1fr}.leaderboard-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.leaderboard-column h3{min-height:0}}
 @media(max-width:600px){.leaderboard-grid{grid-template-columns:1fr}.leaderboard-row{font-size:12px}.leaderboard-column h3{font-size:12px}}
+/* Kufar Demand v1 — matched to Realt Demand, with phone-opening analysis. */
+#tabs .tab[data-tab="demand"]{background:#f9eaec;color:#96505a;border:1px solid #edd5d9;font-weight:700}
+#tabs .tab[data-tab="demand"]:hover{background:#f2dfe3;color:#873e4b}
+#tabs .tab[data-tab="demand"][aria-selected="true"]{background:#ae5965;color:#fff;border-color:#ae5965}
+#tabs .tab[data-tab="demand"]:focus-visible{outline:2px solid #c97883;outline-offset:2px}
+.dem-panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.dem-head{display:flex;align-items:baseline;gap:12px;margin:0 0 12px}
+.dem-head h2{font-size:23px;margin:0 0 3px}
+.dem-head p{font-size:14px;margin:0;color:var(--ink-2)}
+.dem-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 17px;grid-template-areas:"period group" "mode metric";padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.dem-control{display:flex;align-items:center;gap:12px;min-width:0}
+.dem-control>span{font-size:13px;font-weight:650;flex:0 0 75px}
+.dem-period{grid-area:period}.dem-group{grid-area:group}.dem-mode{grid-area:mode}.dem-metric{grid-area:metric}
+.dem-chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dem-chip{font-size:13px;padding:7px 11px;border-radius:20px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:34px}
+.dem-chip.is-on{background:#285b78;color:white;border-color:#285b78}
+.dem-chip:not(.is-on):hover{background:#e1edf2;color:#234e68}
+.dem-chip:focus-visible,.dem-expand:focus-visible{outline:2px solid #7ea7c7;outline-offset:2px}
+.dem-custom{grid-column:1/-1;display:flex;gap:12px;align-items:center;padding-left:86px}
+.dem-custom label{display:flex;align-items:center;gap:6px;font-size:13px}
+.dem-custom input{padding:6px 8px;border:1px solid var(--line);border-radius:7px;max-width:160px;background:var(--surface);color:var(--ink)}
+.dem-note{font-size:12px;color:var(--ink-2);line-height:1.5;margin:10px 2px}
+.dem-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:12px 0 18px}
+.dem-kpi{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:12px;min-height:83px;display:flex;flex-direction:column;gap:3px}
+.dem-kpi b{font-size:22px;line-height:1.2;letter-spacing:-.3px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.dem-kpi span{font-size:12px;font-weight:600}.dem-kpi small{font-size:11px;color:var(--ink-3)}
+.dem-section-title{display:flex;justify-content:space-between;align-items:baseline;gap:15px;flex-wrap:wrap;margin:18px 0 12px}
+.dem-section-title h3{margin:0;font-size:20px}.dem-section-title span{font-size:13px;color:var(--ink-2)}
+.dem-chart-head,.dem-chart-row{display:grid;grid-template-columns:minmax(185px,300px) minmax(115px,1fr) 120px;gap:14px;align-items:center}
+.dem-chart-head{font-size:12px;color:var(--ink-3);font-weight:650;margin-bottom:4px}
+.dem-chart-row{padding:8px 0;border-bottom:1px solid var(--line)}
+.dem-chart-label{min-width:0}.dem-chart-label b{font-size:15px;overflow-wrap:anywhere}.dem-chart-label small{display:block;color:var(--ink-3);font-size:12px;margin-top:3px}
+.dem-track{height:16px;border-radius:6px;overflow:hidden;background:#eaf1f6}
+.dem-fill{height:100%;border-radius:6px}
+.dem-chart-row>strong{font-size:15px;text-align:right;font-variant-numeric:tabular-nums}
+.dem-details{margin-top:22px}.dem-details>summary{font-size:16px;font-weight:650;cursor:pointer;margin-bottom:12px}
+.dem-table-wrap{max-height:none;overflow-x:auto;overflow-y:visible}
+.dem-table-wrap table{min-width:900px}.dem-table-wrap th,.dem-table-wrap td{font-size:13px;vertical-align:middle;padding:10px 10px}
+.dem-table-wrap th{white-space:normal}.dem-table-wrap td{white-space:normal}
+.dem-expand{background:#f2e9f5;color:#6c4a81;border:1px solid #e0d3e8;border-radius:8px;font-size:13px;font-weight:650;padding:8px 10px;cursor:pointer;min-width:145px}
+.dem-expand:hover,.dem-expand[aria-expanded="true"]{background:#e8dcef;color:#624078}
+.dem-gallery-row>td{background:var(--surface-2);padding:14px 12px 18px;border-bottom:2px solid var(--line)}
+.dem-gallery-title{display:flex;gap:12px;align-items:baseline;justify-content:space-between;flex-wrap:wrap;margin-bottom:13px}
+.dem-gallery-title b{font-size:17px}.dem-gallery-title span{font-size:12px;color:var(--ink-3)}
+.dem-gallery.cgrid{margin:0}.dem-gallery .acard{white-space:normal}
+.dem-gallery .card-employee-name{color:#184c74;background:#dceeff;font-weight:650;padding:1px 4px;border-radius:4px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.dem-gallery .at{font-size:14px}.dem-gallery .am,.dem-gallery .aw,.dem-gallery .ad8{font-size:12px}.dem-gallery .amet b{font-size:14px}
+.dem-more{margin-top:12px}
+@media(max-width:1100px){.dem-controls{grid-template-columns:1fr;grid-template-areas:"period" "group" "mode" "metric"}.dem-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.dem-panel{padding:12px}.dem-head h2{font-size:21px}.dem-controls{padding:10px 8px}.dem-control{flex-wrap:wrap;gap:5px}.dem-control>span{flex:0 0 65px}.dem-chip{font-size:12px;padding:6px 9px}.dem-custom{padding-left:0;flex-wrap:wrap}.dem-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.dem-kpi b{font-size:19px}.dem-chart-head,.dem-chart-row{grid-template-columns:130px minmax(90px,1fr) 68px;gap:8px}.dem-chart-label b{font-size:12px}.dem-chart-label small{font-size:11px}.dem-chart-row>strong{font-size:12px}}
+
 </style>
 </head>
 <body>
@@ -234,7 +287,7 @@ tr.lead td{background:var(--accent-soft)}
         <div class="emp-list" id="empList" hidden></div>
       </div>
       <label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="newOnly" checked> только новостройки</label>
-      <button class="btn" id="reset">Сбросить фильтры</button>
+      <button class="btn" id="reset" style="margin-left:auto">Сбросить фильтры</button>
     </div>
   </section></details>
   <aside class="leaderboard" aria-label="Лидеры за выбранный период">
@@ -256,10 +309,10 @@ const TZ_OFF = 3 * 3600 * 1000; // Минск, UTC+3
 const NIGHT = 24, SPREAD = 25;
 const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const EV_NAMES = {new:"Новое", gone:"Снято", back:"Вернулось", raise:"Поднятие", price:"Цена", promo_hl:"Выделение", promo_pp:"Закреп вверху", promo_rb:"Ленточка", title:"Заголовок", photo:"Обложка"};
-const TABS = [["overview","Обзор"],["promo","Продвижение"],["ads","Объявления за период"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["organic","Топ органика"],["promoted","Топ продвижение"]];
+const TABS = [["promo","Продвижение"],["ads","Объявления за период"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["organic","Топ органика"],["promoted","Топ продвижение"],["demand","Спрос"]];
 
 let CAT = null, CUBE = null, STATUS = null;
-const S = { period:"7", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"overview", sort:{}, limit:60 };
+const S = { period:"7", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"promo", sort:{}, limit:60 };
 
 const $ = s => document.querySelector(s);
 const fmt = n => n == null ? "—" : Math.round(n).toLocaleString("ru-RU");
@@ -505,7 +558,7 @@ function adCard(r, mode, opts){
     <div class="ab">
       <div class="at">${esc(a.t)}</div>
       <div class="am">${esc(a.ad||"")}</div>
-      <div class="aw">${esc(r.emp)} · ${esc(a.r||"?")}-комн. · ${fmt1(a.a)} м² · ${fmt(eur(a))} €</div>
+      <div class="aw"><span class="agent-highlight">${esc(r.emp)}</span> · ${esc(a.r||"?")}-комн. · ${fmt1(a.a)} м² · ${fmt(eur(a))} €</div>
       <div class="ad8">${dates}</div>
       <div class="amet"><span><b>${pl}${fmt(r.dv)}</b> просм.</span><span><b>${pl}${fmt(r.dp)}</b> откр. номера</span><span>${r.dv?pct(r.dp,r.dv):"—"}</span></div>
       ${opts.total ? `<div class="ad8">Всего с размещения: <b>${fmt(a.v||0)}</b> просм. · <b>${fmt(a.p||0)}</b> откр. номера</div>` : ""}
@@ -857,7 +910,7 @@ function viewPromo(){
   h += `<div class="panel sec"><h2>Сейчас в рекламе <span class="pill" style="font-size:11px">последний обход ${dtLocal(CAT.generated)}</span></h2>
     <p class="note" style="margin-top:-4px">Только объявления последнего обхода. Три постоянных сотрудника и четвёртый — по числу активных рекламных объявлений (при равенстве — по VIP).</p><div class="pgrid4">` +
     shownAgents.map(a => { const rows = (groups.get(a)||[]).sort(vipFirst);
-      return `<div class="agentcard"><div class="agenttop"><b>${esc(a)}${a===fourth ? " · лидер остальных" : ""}</b><span class="muted">VIP ${rows.filter(x=>x.status==="vip").length} · без VIP ${rows.filter(x=>x.status==="highlight").length}</span></div>${rows.map(pAdLine).join("") || `<div class="muted" style="padding:12px 0">Сейчас активной рекламы нет</div>`}</div>`; }).join("") + `</div>`;
+      return `<div class="agentcard"><div class="agenttop"><b>${esc(a)}</b><span class="muted">VIP ${rows.filter(x=>x.status==="vip").length} · без VIP ${rows.filter(x=>x.status==="highlight").length}</span></div>${rows.map(pAdLine).join("") || `<div class="muted" style="padding:12px 0">Сейчас активной рекламы нет</div>`}</div>`; }).join("") + `</div>`;
   const others = candidates.filter(([a]) => a!==fourth).sort((a,b)=>pOrder(a[0],b[0]));
   h += `<div class="row sec">${others.length ? others.map(([a,r]) => `<button class="chip" data-pother="${esc(a)}" aria-pressed="${PS.other===a}">${esc(a)} · VIP ${r.filter(x=>x.status==="vip").length} · без VIP ${r.filter(x=>x.status==="highlight").length}</button>`).join("") : `<span class="muted">Других активных риелторов сейчас нет</span>`}</div>`;
   if(PS.other && groups.has(PS.other)) h += `<div class="agentcard sec"><div class="agenttop"><b>${esc(PS.other)}</b><button class="btn" data-pother="">Закрыть</button></div><div class="pgrid2">${groups.get(PS.other).sort(vipFirst).map(pAdLine).join("")}</div></div>`;
@@ -932,35 +985,204 @@ function openAd(id){
 
 
 function renderPeriodLeaders(A){
-  // Тот же выбранный период, компания и фильтры, что в таблице сотрудников.
-  // Учитываем именно объявления, впервые размещённые в периоде.
-  const created = new Set(A.events.filter(e=>e[2]==="new").map(e=>e[1]));
-  const m = new Map();
-  for(const id of created){
-    const a=CAT.ads[id];
-    if(!adOk(id,a))continue;
+  // Размещения — новые объявления периода; просмотры/открытия — по всем объявлениям в выбранном периоде.
+  const created=new Set(A.events.filter(e=>e[2]==="new").map(e=>e[1]));
+  const m=new Map();
+  const get=a=>{
     const k=empKey(a);
-    if(!k.startsWith("p:"))continue; // только установленные личности продавцов
+    if(!k.startsWith("p:"))return null;
     if(!m.has(k))m.set(k,{k,name:empName(k),newc:0,nv:0,np:0});
-    const x=m.get(k),v=A.per.get(id);
-    x.newc++;
-    if(v){x.nv+=v.dv;x.np+=v.dp;}
-  }
+    return m.get(k);
+  };
+  for(const id of created){const a=CAT.ads[id];if(!adOk(id,a))continue;const x=get(a);if(x)x.newc++;}
+  for(const [id,v] of A.per){const a=CAT.ads[id];if(!adOk(id,a))continue;const x=get(a);if(x){x.nv+=v.dv;x.np+=v.dp;}}
   const people=[...m.values()];
   const metrics=[["newc","📣 По количеству объявлений"],["nv","👁 По просмотрам"],["np","☎ По открытиям номера"]];
   const classNames=["gold","silver","bronze"];
-  const html=metrics.map(([key,title])=>{
+  $("#periodLeaders").innerHTML=metrics.map(([key,title])=>{
     const ordered=people.filter(x=>x[key]>0).sort((a,b)=>b[key]-a[key]||b.newc-a.newc||a.name.localeCompare(b.name,"ru")).slice(0,3);
-    const rows=ordered.length ? ordered.map((x,i)=>`<div class="leaderboard-row ${classNames[i]}" title="${esc(x.name)}"><span class="place">${i+1}</span><span class="leader-name">${esc(x.name)}</span><span class="leader-count">${fmt(x[key])}</span></div>`).join("") : '<div class="leaderboard-empty">Нет результатов за период</div>';
+    const rows=ordered.length?ordered.map((x,i)=>`<div class="leaderboard-row ${classNames[i]}" title="${esc(x.name)}"><span class="place">${i+1}</span><span class="leader-name">${esc(x.name)}</span><span class="leader-count">${fmt(x[key])}</span></div>`).join(""):'<div class="leaderboard-empty">Нет результатов за период</div>';
     return `<section class="leaderboard-column"><h3>${title}</h3>${rows}</section>`;
   }).join("");
-  $("#periodLeaders").innerHTML=html;
+}
+
+// Kufar Radar — Demand UI module, 2026-11-09.
+// Front-end only. Uses existing CAT/CUBE daily increments AFTER removeRobot().
+// Do not confuse openings of the phone number with calls or unique leads.
+const DEM={period:"today",mode:"all",group:"exact",metric:"views",from:"",to:"",opened:null,shown:40};
+const DEM_AREA=[0,30,35,40,45,50,55,60,65,70,75,80,90,100,120,140,160,180,200,250,300,Infinity];
+const DEM_PRICE=[0,45000,50000,55000,60000,65000,70000,80000,90000,100000,120000,140000,160000,180000,200000,250000,300000,400000,500000,750000,Infinity];
+function demDates(){
+ const today=todayStr();let from=today,to=today;
+ if(DEM.period==="yesterday")from=to=addDays(today,-1);
+ else if(DEM.period==="custom"){from=DEM.from||addDays(today,-6);to=DEM.to||today;}
+ else if(/^\d+$/.test(DEM.period))from=addDays(today,-Math.min(90,Number(DEM.period))+1);
+ const recorded=Object.keys(CUBE.days).sort(),first=recorded[0]||today,last=recorded.at(-1)||today;
+ const days=[];
+ if(from<=to)for(let d=from;d<=to&&days.length<120;d=addDays(d,1))if(CUBE.days[d])days.push(d);
+ return {from,to,days,first,last};
+}
+function demPrice(a){
+ const euro=Number(a.pe),usd=Number(a.pu);
+ if(euro>0&&Number.isFinite(euro))return {value:Math.round(euro*100)/100,currency:"€"};
+ if(usd>0&&Number.isFinite(usd))return {value:Math.round(usd*100)/100,currency:"$"};
+ return null;
+}
+function demBand(n,edges){
+ for(let i=0;i<edges.length-1;i++)if(n>=edges[i]&&n<edges[i+1])return {low:edges[i],high:edges[i+1]};
+ return null;
+}
+function demDescriptor(a){
+ const area=Number(a.a),price=demPrice(a);
+ if(DEM.group==="area"){
+  if(!(area>0))return null;
+  const b=demBand(area,DEM_AREA);return b&&{key:"area|"+b.low,group:"area",...b};
+ }
+ if(!price)return null;
+ if(DEM.group==="price"){
+  const edges=DEM_PRICE;
+  const b=demBand(price.value,edges);
+  return b&&{key:"price|"+price.currency+"|"+b.low,group:"price",currency:price.currency,...b};
+ }
+ if(!(area>0))return null;
+ const exactArea=Math.round(area*100)/100;
+ return {key:"exact|"+exactArea+"|"+price.value.toFixed(2)+"|"+price.currency,group:"exact",area:exactArea,price:price.value,currency:price.currency};
+}
+function demLabel(g){
+ const n=x=>fmt1(x);
+ if(g.group==="exact")return n(g.area)+" м² · "+n(g.price)+" "+g.currency;
+ const units=g.group==="area"?" м²":" тыс. "+g.currency;
+ const scaled=x=>g.group==="area"?fmt(x):fmt(x/1000);
+ return (g.low===0?"до "+scaled(g.high):g.high===Infinity?"от "+scaled(g.low):scaled(g.low)+"–"+scaled(g.high))+units;
+}
+function demPaid(day,id,views,opens){
+ const e=day.pe&&day.pe[id];
+ let pv=0,pp=0;
+ if(e&&typeof e==="object"){
+  for(const x of Object.values(e))if(Array.isArray(x)){pv+=Math.max(0,Number(x[0])||0);pp+=Math.max(0,Number(x[1])||0);}
+ }else if(day.pr&&day.pr[id]){pv=views;pp=opens;}
+ return [Math.min(views,pv),Math.min(opens,pp)];
+}
+function demAggregate(){
+ const period=demDates(),byId=new Map(),counts={unknown:0,days:period.days.length};
+ for(const day of period.days){
+  const D=CUBE.days[day];
+  for(const [id,raw]of Object.entries(D.a||{})){
+   const ad=CAT.ads[id];if(!ad||!adOk(id,ad))continue;
+   let views=Math.max(0,Number(raw[0])||0),opens=Math.max(0,Number(raw[1])||0);
+   const paid=demPaid(D,id,views,opens);
+   if(DEM.mode==="paid"){views=paid[0];opens=paid[1];}
+   else if(DEM.mode==="free"){views-=paid[0];opens-=paid[1];}
+   if(!views&&!opens)continue;
+   let item=byId.get(id);
+   if(!item){item={id,a:ad,dv:0,dp:0};byId.set(id,item);}
+   item.dv+=views;item.dp+=opens;
+  }
+ }
+ const groups=new Map();
+ for(const item of byId.values()){
+  const descr=demDescriptor(item.a);
+  if(!descr){counts.unknown++;continue;}
+  let g=groups.get(descr.key);
+  if(!g){g={...descr,views:0,opens:0,items:new Map()};groups.set(descr.key,g);}
+  g.views+=item.dv;g.opens+=item.dp;g.items.set(item.id,item);
+ }
+ const records=[...groups.values()].map(g=>({...g,count:g.items.size,ratio:g.views?100*g.opens/g.views:null}));
+ records.sort((a,b)=>demValue(b)-demValue(a)||b.opens-a.opens||b.views-a.views||a.key.localeCompare(b.key,"ru"));
+ return {period,records,unpriced:counts.unknown,ids:new Set(records.flatMap(g=>[...g.items.keys()]))};
+}
+function demValue(x){
+ if(DEM.metric==="opens")return x.opens;
+ if(DEM.metric==="ratio")return x.views>=20?100*x.opens/x.views:-1;
+ return x.views;
+}
+function demPareto(records){
+ const total=records.reduce((v,g)=>v+(DEM.metric==="views"?g.views:g.opens),0);
+ let seen=0,count=0;const ads=new Set();
+ if(DEM.metric!=="ratio"&&total>0)for(const g of records){
+  if(seen>=total*.8)break;
+  count++;seen+=DEM.metric==="views"?g.views:g.opens;
+  for(const id of g.items.keys())ads.add(id);
+ }
+ return {total,count,ads:ads.size,share:total?100*seen/total:0};
+}
+function demCards(g){
+ const value=x=>DEM.metric==="opens"?x.dp:DEM.metric==="ratio"?(x.dv>=10?100*x.dp/x.dv:-1):x.dv;
+ return [...g.items.values()].sort((a,b)=>value(b)-value(a)||b.dp-a.dp||b.dv-a.dv||String(a.id).localeCompare(String(b.id),"ru")).slice(0,30).map(x=>{
+  const a=x.a,placed=a.lt0||a.fs||a.lt;
+  return adCard({id:x.id,a,dv:x.dv,dp:x.dp,emp:empName(empKey(a)),placed,lastRaise:a.lt&&placed&&a.lt-placed>600?a.lt:null,raises:0},null,{plus:true,total:true});
+ }).join("");
+}
+function demChip(attr,value,label,current){
+ return '<button type="button" class="dem-chip'+(current===value?' is-on':'')+'" data-dem-'+attr+'="'+esc(value)+'" aria-pressed="'+(current===value?'true':'false')+'">'+esc(label)+'</button>';
+}
+function demHeader(){
+ const periods=[["today","Сегодня"],["yesterday","Вчера"],["7","7 дней"],["14","14 дней"],["30","30 дней"],["90","90 дней"],["custom","Свой период"]];
+ const groups=[["exact","По сумме просмотров"],["price","По стоимости"],["area","По площадям"]];
+ const modes=[["all","Все"],["free","Органика"],["paid","Продвижение"]];
+ const metrics=[["views","Просмотры"],["opens","Открытия номера"],["ratio","Доля открытий"]];
+ const chipList=(name,opts,selected)=>opts.map(x=>demChip(name,x[0],x[1],selected)).join("");
+ const custom=DEM.period==="custom"?'<div class="dem-custom"><label>От <input id="demFrom" type="date" value="'+esc(DEM.from||addDays(todayStr(),-6))+'"></label><label>До <input id="demTo" type="date" value="'+esc(DEM.to||todayStr())+'"></label></div>':"";
+ return '<div class="dem-head"><div><h2>Спрос</h2><p>Что привлекает просмотры и что побуждает открыть номер?</p></div></div>'
+ +'<div class="dem-controls"><div class="dem-control dem-period"><span>Период</span><div class="dem-chips">'+chipList("period",periods,DEM.period)+'</div></div>'
+ +'<div class="dem-control dem-group"><span>Рейтинг</span><div class="dem-chips">'+chipList("group",groups,DEM.group)+'</div></div>'
+ +custom
+ +'<div class="dem-control dem-mode"><span>Объявления</span><div class="dem-chips">'+chipList("mode",modes,DEM.mode)+'</div></div>'
+ +'<div class="dem-control dem-metric"><span>Интерес</span><div class="dem-chips">'+chipList("metric",metrics,DEM.metric)+'</div></div></div>';
+}
+function viewDemand(){
+ const data=demAggregate(),{period,records,ids}=data,pareto=demPareto(records);
+ const totalV=records.reduce((sum,g)=>sum+g.views,0),totalP=records.reduce((sum,g)=>sum+g.opens,0);
+ const base=DEM.metric==="views"?"просмотров":"открытий";
+ const available=period.days.length?period.days[0]+" — "+period.days.at(-1):"нет данных";
+ const coverage=period.from<period.first||period.to>period.last?' · доступная история: '+period.first+" — "+period.last:"";
+ const pref=DEM.metric==="ratio"?'Для сравнения доли открытий в группе нужно не менее 20 просмотров. ':"";
+ const note='Период: '+period.from+' — '+period.to+' · учтены дни: '+fmt(period.days.length)+' ('+available+').'+coverage
+ +' Вычтены обнаруженные роботизированные открытия номера. Цена берётся из текущей карточки, её прошлые изменения не восстановлены. '+pref
+ +(data.unpriced?' Не хватает площади или цены для группировки: '+fmt(data.unpriced)+' объявлений.':'');
+ const kpi=(value,label,sub)=>'<div class="dem-kpi"><b>'+esc(value)+'</b><span>'+esc(label)+'</span><small>'+esc(sub)+'</small></div>';
+ const ratio=totalV?(100*totalP/totalV).toLocaleString("ru-RU",{maximumFractionDigits:1})+'%':"—";
+ let stats='<div class="dem-stats">'
+ +kpi(fmt(totalV),"Просмотры за период","Прирост после фильтра")
+ +kpi(fmt(totalP),"Открытий номера","Это не количество звонков")
+ +kpi(ratio,"Открытий / просмотров","Относительный показатель")
+ +kpi(fmt(ids.size),"Объявлений",fmt(records.length)+" групп предложений")
+ +kpi(DEM.metric==="ratio"?"—":pareto.share.toLocaleString("ru-RU",{maximumFractionDigits:1})+'%',"Группы, дающие 80%",DEM.metric==="ratio"?"80/20 неприменимо к доле":fmt(pareto.count)+" групп · "+fmt(pareto.ads)+" объявлений")
+ +'</div>';
+ const top=records.slice(0,12),max=Math.max(1,...top.map(g=>Math.max(0,demValue(g))));
+ const chartHead='<div class="dem-chart-head"><span>Диапазон / предложение</span><span>Интерес по группам</span><span>Показатель</span></div>';
+ let chart=top.map((g,i)=>{
+  const score=demValue(g),len=score>=0?Math.max(0,score/max)*100:0;
+  const col='rgb('+Math.round(145+i*5)+','+Math.round(190+i*3.2)+','+Math.round(216+i*2.2)+')';
+  const value=DEM.metric==="ratio"?(score<0?"—":score.toLocaleString("ru-RU",{maximumFractionDigits:1})+'%'):fmt(score);
+  const label=DEM.metric==="ratio"?" просмотров / "+fmt(g.opens)+" открытий":' объявлений';
+  return '<div class="dem-chart-row"><div class="dem-chart-label"><b>'+esc(demLabel(g))+'</b><small>'+fmt(g.count)+label+'</small></div><div class="dem-track"><div class="dem-fill" style="width:'+len.toFixed(2)+'%;background:'+col+'"></div></div><strong>'+esc(value)+'</strong></div>';
+ }).join('');
+ const title=DEM.group==="exact"?"Интерес к сочетаниям площади и цены":DEM.group==="area"?"Интерес по диапазонам площади":"Интерес по диапазонам стоимости";
+ const summary=DEM.metric==="ratio"?"Рейтинг по доле открытий; показатель 80/20 не применяется к процентам.":'80% '+base+' обеспечивают '+fmt(pareto.count)+' из '+fmt(records.length)+' групп ('+pct(pareto.count,records.length)+').';
+ const rows=records.slice(0,DEM.shown).flatMap((g,i)=>{
+  const key=g.key,open=DEM.opened===key,score=demValue(g);
+  const fraction=DEM.metric==="ratio"?"—":pct(DEM.metric==="views"?g.views:g.opens,pareto.total);
+  const rate=g.views?(100*g.opens/g.views).toLocaleString('ru-RU',{maximumFractionDigits:1})+'%':"—";
+  const button='<button type="button" class="dem-expand" data-dem-expand="'+esc(key)+'" aria-expanded="'+open+'">'+(open?'Свернуть':'Топ-'+Math.min(30,g.count)+' с фото')+' ▾</button>';
+  const row='<tr><td>'+(i+1)+'</td><td><b>'+esc(demLabel(g))+'</b></td><td class="num">'+fmt(g.count)+'</td><td class="num">'+fmt(g.views)+'</td><td class="num">'+fmt(g.opens)+'</td><td class="num">'+rate+'</td><td>'+button+'</td></tr>';
+  if(!open)return [row];
+  const gallery='<tr class="dem-gallery-row"><td colspan="7"><div class="dem-gallery-title"><b>'+esc(demLabel(g))+' · топ-'+Math.min(30,g.count)+'</b><span>Отсортировано по '+(DEM.metric==="views"?"просмотрам":DEM.metric==="opens"?"открытиям номера":"доле открытий")+' за период</span></div><div class="cgrid dem-gallery">'+demCards(g)+'</div></td></tr>';
+  return [row,gallery];
+ });
+ const table=records.length?'<div class="tbl-wrap dem-table-wrap"><table><thead><tr><th>№</th><th>Группа</th><th>Объявлений</th><th>Просмотры</th><th>Открытия</th><th>На 100 просм.</th><th>Карточки</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>':'<p class="note">За выбранный период нет подтверждённых данных для анализа.</p>';
+ const more=records.length>DEM.shown?'<button class="btn dem-more" data-dem-more="1">Показать ещё '+fmt(Math.min(40,records.length-DEM.shown))+' групп</button>':'';
+ return '<div class="dem-panel">'+demHeader()+'<p class="dem-note">'+esc(note)+'</p>'+stats
+ +'<div class="dem-section-title"><h3>'+esc(title)+'</h3><span>'+esc(summary)+'</span></div>'
+ +(top.length?'<div class="dem-chart">'+chartHead+chart+'</div>':'<p class="note">Нет данных.</p>')
+ +'<details class="dem-details" open><summary>Подробная таблица групп · '+fmt(records.length)+'</summary>'+table+more+'</details>'
+ +'<p class="dem-note">Просмотры и открытия номера — прибавка счётчиков Kufar, а не уникальные люди. Для органики и продвижения используются раздельные показатели за дни, когда статус известен. Показатель «открытий / просмотров» нельзя считать подтверждённой долей позвонивших.</p></div>';
 }
 
 // ---------- отрисовка
 function render(){
   const A = aggregate();
-  const V = {overview:viewOverview, ads:viewAds, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, organic:A=>viewTop(A,"organic"), promoted:A=>viewTop(A,"promo")}[S.tab];
+  const V = {overview:viewOverview, ads:viewAds, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, organic:A=>viewTop(A,"organic"), promoted:A=>viewTop(A,"promo"), demand:()=>viewDemand()}[S.tab];
   $("#view").innerHTML = V(A);
   renderControls();
   renderPeriodLeaders(A);
@@ -986,6 +1208,12 @@ function renderEmpList(){
 
 // ---------- события интерфейса
 document.addEventListener("click", ev => {
+  const dc=ev.target.closest("[data-dem-period],[data-dem-group],[data-dem-mode],[data-dem-metric],[data-dem-expand],[data-dem-more]");
+  if(dc){
+    for(const attr of ["period","group","mode","metric"]){if(dc.dataset["dem"+attr[0].toUpperCase()+attr.slice(1)]!==undefined){DEM[attr]=dc.dataset["dem"+attr[0].toUpperCase()+attr.slice(1)];DEM.opened=null;DEM.shown=40;render();return;}}
+    if(dc.dataset.demExpand!==undefined){DEM.opened=DEM.opened===dc.dataset.demExpand?null:dc.dataset.demExpand;render();return;}
+    if(dc.dataset.demMore!==undefined){DEM.shown+=40;render();return;}
+  }
   const pt = ev.target.closest("[data-pother],[data-pmetric],[data-ptrend],[data-pagent]");
   if(pt){
     if(pt.dataset.pother !== undefined) PS.other = pt.dataset.pother && PS.other !== pt.dataset.pother ? pt.dataset.pother : null;
@@ -1015,6 +1243,7 @@ document.addEventListener("click", ev => {
 });
 document.addEventListener("change", ev => {
   const t = ev.target;
+  if(t.id==="demFrom"||t.id==="demTo"){DEM[t.id==="demFrom"?"from":"to"]=t.value;render();return;}
   if(t.dataset && t.dataset.empK !== undefined){ t.checked ? S.emps.add(t.dataset.empK) : S.emps.delete(t.dataset.empK); render(); saveState(); return; }
   if(t.id==="dFrom"){ S.from = t.value; render(); }
   if(t.id==="dTo"){ S.to = t.value; render(); }
@@ -1039,7 +1268,7 @@ function loadState(){ try{ const x = JSON.parse(localStorage.getItem("radar_f")|
 // ---------- старт
 (async function(){
   loadState();
-  if(!TABS.some(t => t[0] === S.tab)) S.tab = "overview";
+  if(!TABS.some(t => t[0] === S.tab)) S.tab = "promo";
   if(innerWidth < 640) $("#fbox").open = false;
   $("#newOnly").checked = S.newOnly;
   try{
