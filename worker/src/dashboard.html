@@ -182,18 +182,19 @@ tr.lead td{background:var(--accent-soft)}
 /* Главный экран: компактные фильтры и лидеры выбранного периода */
 .home-strip{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1fr);gap:10px;align-items:stretch}
 .home-strip .fbox{min-width:0}
-.home-strip .fbox .filters{gap:7px}
-.home-strip .fbox .row{gap:5px}
-.home-strip .fbox .lbl{min-width:75px}
-.home-strip .fbox #periods .chip{padding:5px 8px;font-size:13px;white-space:nowrap}
-.home-strip #periods{flex-wrap:wrap;gap:4px}
-.home-strip #periods .lbl{min-width:72px}
-.home-strip .filter-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-start}
-.home-strip .filter-actions .chip{margin-left:0}
-.home-strip #periods #reset{font-size:12px;padding:6px 8px}
-.home-strip .filter-actions #companies .chip{padding:5px 8px;font-size:12px}
-.home-strip .filter-actions #empBtn{padding:6px 8px;font-size:12px}
-.home-strip .filter-actions label.chip{padding:5px 8px;font-size:12px}
+.home-strip .fbox .filters{gap:9px;min-height:166px;justify-content:space-between}
+.home-strip .fbox .row{gap:6px}
+.home-strip .fbox .lbl{min-width:79px;font-size:14px}
+.home-strip #periods{flex-wrap:wrap;gap:5px}
+.home-strip #periods .chip{padding:6px 10px;font-size:14px;white-space:nowrap;line-height:1.35}
+.home-strip #companies{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.home-strip .company-row #companies .chip{padding:6px 11px;font-size:14px;white-space:nowrap}
+.home-strip .employee-row{margin-top:3px;gap:9px}
+.home-strip .employee-row #empBtn{padding:7px 12px;font-size:14px;white-space:nowrap}
+.home-strip .employee-row label.chip{display:inline-flex;gap:7px;align-items:center;padding:6px 12px;font-size:14px;white-space:nowrap}
+.home-strip .reset-row{justify-content:flex-end;margin-top:auto}
+.home-strip #reset{font-size:13px;padding:7px 12px;white-space:nowrap}
+@media(max-width:800px){.home-strip .fbox .filters{min-height:0}.home-strip #periods{flex-wrap:wrap}.home-strip .employee-row label.chip{white-space:normal}}
 .leaderboard{position:relative;overflow:hidden;min-width:0;isolation:isolate;border-radius:15px;border:1px solid #5eaa8b;padding:13px 13px 12px;background:radial-gradient(ellipse at 85% 14%,rgba(233,247,214,.49) 0%,transparent 43%),radial-gradient(ellipse at 18% 82%,rgba(54,151,119,.24) 0%,transparent 50%),linear-gradient(125deg,#318a69 0%,#54a888 53%,#428f73 100%);box-shadow:0 2px 8px rgba(21,91,49,.12);color:white}
 .leaderboard:before{content:"";position:absolute;inset:-40px -30px auto 28%;height:100px;border-radius:50%;background:linear-gradient(110deg,transparent,rgba(240,251,220,.27));transform:rotate(-8deg);z-index:-1}
 .leaderboard:after{content:"✦  ❧";position:absolute;right:14px;top:6px;font-size:26px;color:#f6db65;opacity:.78;pointer-events:none}
@@ -290,16 +291,19 @@ tr.lead td{background:var(--accent-soft)}
       <span class="lbl">Свой период</span>
       <input type="date" id="dFrom"> — <input type="date" id="dTo">
     </div>
-    <div class="row filter-actions">
+    <div class="row company-row">
       <span class="lbl">Компания</span>
       <span id="companies"></span>
-      <span class="lbl" style="min-width:auto;margin-left:6px">Сотрудники</span>
+    </div>
+    <div class="row employee-row">
+      <span class="lbl">Сотрудники</span>
       <div class="emp-box">
         <button class="btn" id="empBtn" aria-expanded="false">Все сотрудники ▾</button>
         <div class="emp-list" id="empList" hidden></div>
       </div>
-      <label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" id="newOnly" checked> только новостройки</label>
+      <label class="chip"><input type="checkbox" id="newOnly" checked> только новостройки</label>
     </div>
+    <div class="row reset-row"><button class="btn" id="reset">Сбросить фильтры</button></div>
   </section></details>
   <aside class="leaderboard" aria-label="Лидеры за выбранный период">
     <h2>🏆 Лидеры за период</h2>
@@ -1201,7 +1205,7 @@ function render(){
 }
 function renderControls(){
   const P = [["today","Сегодня"],["yesterday","Вчера"],["7","7 дней"],["30","30 дней"],["90","90 дней"],["all","Всё время"],["custom","Свой период"]];
-  $("#periods").innerHTML = `<span class="lbl">Период</span>` + P.map(([k,l]) => `<button class="chip" data-period="${k}" aria-pressed="${S.period===k}">${l}</button>`).join("") + `<button class="btn" id="reset" style="margin-left:auto">Сбросить фильтры</button>`;
+  $("#periods").innerHTML = `<span class="lbl">Период</span>` + P.map(([k,l]) => `<button class="chip" data-period="${k}" aria-pressed="${S.period===k}">${l}</button>`).join("");
   $("#customRow").hidden = S.period !== "custom";
   $("#companies").innerHTML = [["all","Все"], ...Object.entries(CAT.companies)].map(([k,l]) => `<button class="chip" data-company="${k}" aria-pressed="${S.company===k}">${esc(l)}</button>`).join(" ");
   $("#tabs").innerHTML = TABS.map(([k,l]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join("");
