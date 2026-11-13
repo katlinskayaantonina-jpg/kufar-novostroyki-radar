@@ -179,6 +179,14 @@ tr.lead td{background:var(--accent-soft)}
 .acard.own-boriskina:after{content:"своё";position:absolute;top:7px;right:7px;background:#087a39;color:#fff;border:1px solid rgba(255,255,255,.7);border-radius:999px;font-size:11px;line-height:1.1;font-weight:700;padding:5px 10px;box-shadow:0 1px 4px rgba(0,0,0,.17);pointer-events:none;z-index:2}
 .agent-highlight{background:var(--accent-soft);border-radius:4px;padding:1px 4px;color:var(--accent);font-weight:600}
 :root[data-theme="dark"] .agent-highlight{color:#d9f8e9}
+/* A tiny pill beside the Top title/sorting controls, no additional toolbar row. */
+.top-heading{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;white-space:nowrap;min-width:0}
+.top-heading .top-title{font-weight:700;min-width:0}
+.top-heading .topkey{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;margin-left:auto!important}
+.top-heading .topkey .chip{font-size:12px;padding:5px 9px;white-space:nowrap}
+.top-count-selector{display:inline-flex;align-items:center;flex:none;gap:5px;margin-left:3px;padding:2px 5px 2px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);font-size:12px;font-weight:500;white-space:nowrap;line-height:1.3}
+.top-count-selector select{font:inherit;font-weight:750;border:0;outline:0;border-radius:999px;padding:3px 5px;background:transparent;color:inherit;cursor:pointer;width:53px}
+@media(max-width:1050px){.top-heading{flex-wrap:wrap;white-space:normal}.top-heading .top-title{flex-basis:100%}.top-heading .topkey{margin-left:0!important}}
 /* Главный экран: компактные фильтры и лидеры выбранного периода */
 .home-strip{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1fr);gap:10px;align-items:stretch}
 .home-strip .fbox{min-width:0}
@@ -715,13 +723,15 @@ function openGroup(area){
 
 // ---------- что работает: органика и продвижение
 const TOPKEY = {};   // id блока -> "dp" (открытия номера) | "dv" (просмотры)
+let TOP_COUNT = 30; // Default number of visible ranked cards, shared between both Top tabs
 function topSection(title, sub, rows, mode, opts){
   opts = opts || {};
   const key = TOPKEY[opts.id] || "dp";
   const val = (r, k) => opts.total ? (k==="dp" ? (r.a.p||0) : (r.a.v||0)) : r[k];
   const other = key==="dp" ? "dv" : "dp";
   const sorted = rows.slice().sort((x,y) => val(y,key)-val(x,key) || val(y,other)-val(x,other));
-  const topLabel = (opts.labels || {dp:"ТОП-30 по открытиям номера", dv:"ТОП-30 по просмотрам"})[key];
+  const topLabel = (opts.labels || {dp:"ТОП-30 по открытиям номера", dv:"ТОП-30 по просмотрам"})[key].replace(/ТОП-30/g, "ТОП-"+TOP_COUNT);
+  const topCountSelector = `<label class="top-count-selector" title="Количество карточек в подборке"><span>Показать</span><select data-topcount aria-label="Сколько объявлений показывать в топе">${[10,20,30,50,100].map(n => `<option value="${n}" ${n===TOP_COUNT?"selected":""}>${n}</option>`).join("")}</select></label>`;
   const toggle = `<span class="topkey" style="margin-left:10px;font-weight:400;font-size:13px">${[["dp","По открытиям номера"],["dv","По просмотрам"]].map(([k,l]) => `<button class="chip" data-topkey="${opts.id}:${k}" aria-pressed="${k===key}">${l}</button>`).join(" ")}</span>`;
   const emptyNote = `<p class="note">За выбранный период таких объявлений нет.</p>`;
   const group = (fn, keys) => { const m = new Map(); for(const r of rows){ const k = fn(r); const g = m.get(k)||{n:0,dv:0,dp:0}; g.n++; g.dv+=r.dv; g.dp+=r.dp; m.set(k,g); } return keys.filter(k=>m.has(k)).map(k=>[k,m.get(k)]); };
@@ -731,7 +741,7 @@ function topSection(title, sub, rows, mode, opts){
     ${g.map(([k,v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v.n)}</td><td class="num">${fmt1(v.dp/v.n)}</td><td class="num">${fmt1(v.dv/v.n)}</td><td class="num">${pct(v.dp,v.dv)}</td></tr>`).join("")}</tbody></table></div></div>`;
   const fastN = rows.filter(r => isFast(r.id)).length;
   return `<div class="panel sec"><h2>${title} · ${fmt(rows.length)}</h2><p class="note" style="margin-top:-4px">${sub} 🚀 быстрый старт: ${fastN}.</p>
-    <h3 class="sec">${topLabel}${toggle}</h3>${rows.length ? `<div class="cgrid">${sorted.slice(0,30).map(r => adCard(r, mode, opts.card)).join("")}</div>` : emptyNote}</div>`;
+    <h3 class="sec top-heading"><span class="top-title">${topLabel}</span>${toggle}${topCountSelector}</h3>${rows.length ? `<div class="cgrid">${sorted.slice(0,TOP_COUNT).map(r => adCard(r, mode, opts.card)).join("")}</div>` : emptyNote}</div>`;
 }
 function viewTop(A, mode){
   const byGain = (a,b) => b.dp-a.dp || b.dv-a.dv;
@@ -1258,6 +1268,11 @@ document.addEventListener("click", ev => {
   render(); saveState();
 });
 document.addEventListener("change", ev => {
+  if(ev.target.matches("[data-topcount]")){
+    const next=Number(ev.target.value);
+    if([10,20,30,50,100].includes(next)){ TOP_COUNT=next; render(); }
+    return;
+  }
   const t = ev.target;
   if(t.id==="demFrom"||t.id==="demTo"){DEM[t.id==="demFrom"?"from":"to"]=t.value;render();return;}
   if(t.dataset && t.dataset.empK !== undefined){ t.checked ? S.emps.add(t.dataset.empK) : S.emps.delete(t.dataset.empK); render(); saveState(); return; }
