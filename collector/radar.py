@@ -817,6 +817,14 @@ def main() -> int:
         old = kv.get_json(f"raw:{dkey}", default=[]) or []
         kv.put_json(f"raw:{dkey}", old + rows, ttl_seconds=RAW_TTL_DAYS * 86400)
 
+    # Компактная история ранних замеров — включая объявления, снятые впоследствии.
+    # Ошибка аналитического модуля не должна останавливать основной сбор.
+    try:
+        from fast_start import build_fast_archive
+        STATS["fast_start"] = build_fast_archive(kv, state, profiles, raw_rows, run_ts)
+    except Exception as exc:  # noqa: BLE001
+        STATS["fast_start_error"] = str(exc)[:160]
+
     # чистка: старые неактивные объявления
     keep_after = run_ts - ADS_KEEP_DAYS * 86400
     for aid in [a for a, s in ads_state.items() if not s.get("act") and (s.get("ls") or 0) < keep_after]:

@@ -2,7 +2,7 @@ import page from "./dashboard.html";
 import { freshnessState, readLastRun, watchdogAlive } from "./health.mjs";
 import { runCollectionSlot } from "./recovery.mjs";
 
-const DATA_KEYS = new Set(["catalog", "cube", "status"]);
+const DATA_KEYS = new Set(["catalog", "cube", "status", "fast"]);
 const HEALTH_HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",

@@ -280,6 +280,22 @@ tr.lead td{background:var(--accent-soft)}
 @media(max-width:1100px){.dem-controls{grid-template-columns:1fr;grid-template-areas:"period" "group" "mode" "metric"}.dem-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.dem-panel{padding:12px}.dem-head h2{font-size:21px}.dem-controls{padding:10px 8px}.dem-control{flex-wrap:wrap;gap:5px}.dem-control>span{flex:0 0 65px}.dem-chip{font-size:12px;padding:6px 9px}.dem-custom{padding-left:0;flex-wrap:wrap}.dem-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.dem-kpi b{font-size:19px}.dem-chart-head,.dem-chart-row{grid-template-columns:130px minmax(90px,1fr) 68px;gap:8px}.dem-chart-label b{font-size:12px}.dem-chart-label small{font-size:11px}.dem-chart-row>strong{font-size:12px}}
 
+
+/* Быстрый старт — отдельный анализ первого окна, без изменений старых вкладок */
+.fs-controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:12px 0 18px}
+.fs-controls label{font-size:12px;color:var(--ink-2);display:flex;flex-direction:column;gap:5px}
+.fs-controls select{min-width:125px;padding:8px}
+.fs-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:12px 0}
+.fs-map{overflow-x:auto;margin-top:12px}
+.fs-heat{display:grid;grid-template-columns:40px repeat(24,minmax(30px,1fr));min-width:870px;gap:3px}
+.fs-heat div{text-align:center;font-size:11px;padding:9px 0;border-radius:4px}
+.fs-heat .head{background:var(--surface-2);font-weight:700}
+.fs-heat .cell{border:1px solid var(--line)}
+.fs-heat .good{background:#d8f2e7;color:#155940}.fs-heat .bad{background:#f9e2e2;color:#873a3a}
+.fs-heat .chance{background:#dceafd;color:#225a8e}.fs-heat .unknown{background:var(--surface-2);color:var(--ink-3)}
+.fs-table{width:100%;border-collapse:collapse;font-size:12px}
+.fs-table td,.fs-table th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+@media(max-width:700px){.fs-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -332,9 +348,9 @@ const TZ_OFF = 3 * 3600 * 1000; // Минск, UTC+3
 const NIGHT = 24, SPREAD = 25;
 const WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const EV_NAMES = {new:"Новое", gone:"Снято", back:"Вернулось", raise:"Поднятие", price:"Цена", promo_hl:"Выделение", promo_pp:"Закреп вверху", promo_rb:"Ленточка", title:"Заголовок", photo:"Обложка"};
-const TABS = [["promo","Продвижение"],["ads","Объявления за период"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["organic","Топ органика"],["promoted","Топ продвижение"],["demand","Спрос"]];
+const TABS = [["promo","Продвижение"],["ads","Объявления за период"],["employees","Сотрудники"],["hours","По часам"],["placed","Что размещают"],["organic","Топ органика"],["fast","Быстрый старт"],["promoted","Топ продвижение"],["demand","Спрос"]];
 
-let CAT = null, CUBE = null, STATUS = null;
+let CAT = null, CUBE = null, STATUS = null, FAST_DATA = {ads:{}};
 const S = { period:"today", from:"", to:"", wd:new Set(), company:"all", emps:new Set(), rooms:new Set(), q:"", newOnly:true, tab:"employees", sort:{}, limit:60 };
 
 const $ = s => document.querySelector(s);
@@ -571,7 +587,7 @@ function promoBadges(a){
 }
 function adCard(r, mode, opts){
   opts = opts || {};
-  const a = r.a, f = isFast(r.id), pl = opts.plus ? "+" : "";
+  const a = r.a, f = opts.fast ? null : isFast(r.id), pl = opts.plus ? "+" : "";
   const ownBoriskina = (r.emp||"").trim() === "Елена Борискина";
   let dates = `Размещено ${dtLocal(r.placed)}`;
   if(r.lastRaise) dates += ` · поднято ${dtLocal(r.lastRaise)}`;
@@ -990,7 +1006,8 @@ function viewPromo(){
 
 // ---------- карточка объявления
 function openAd(id){
-  const a = CAT.ads[id]; if(!a) return;
+  const archive = (FAST_DATA.ads||{})[id];
+  const a = CAT.ads[id] || (archive ? {...archive.a, lt0:archive.t} : null); if(!a) return;
   const keys = Object.keys(CUBE.days).sort();
   const series = keys.map(d => [d, (CUBE.days[d].a[id]||[0,0])]);
   const evs = keys.flatMap(d => CUBE.days[d].ev.filter(e => e[1]===id)).sort((x,y)=>y[0]-x[0]);
@@ -998,12 +1015,12 @@ function openAd(id){
   $("#drawerIn").innerHTML = `<button class="btn" id="closeDrawer" style="float:right">Закрыть</button>
     <h2 style="margin-right:90px">${esc(a.t)}</h2>
     ${a.img?`<img src="${esc(a.img)}" alt="" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px">`:""}
-    <p>${esc(a.ad||"")}<br>${esc(empName(empKey(a)))} · ${esc(CAT.companies[a.c]||"")}<br>
+    <p>${esc(a.ad||"")}<br>${esc(a.seller||empName(empKey(a)))} · ${esc(CAT.companies[a.c]||"")}<br>
     ${esc(a.r||"?")} комн. · ${fmt1(a.a)} м² · этаж ${esc(a.fl||"?")}/${esc(a.ft||"?")} · ${fmt(eur(a))} € · ${eur(a)&&a.a?fmt(eur(a)/a.a)+" €/м²":""}<br>
     Размещено: ${dtLocal(a.lt0||a.lt)} · последнее поднятие: ${dtLocal(a.lt)} · всего просмотров: ${fmt(a.v)} · открытий номера: ${fmt(a.p)}<br>
     ${promoBadges(a)} ${a.act?"":"<b>Снято с публикации</b>"}</p>
     <p><a href="https://re.kufar.by/vi/${esc(id)}" target="_blank" rel="noopener noreferrer">Открыть на Kufar ↗</a></p>
-    <h2>Просмотры по дням</h2>${barChart(series.map(x=>x[1][0]), lab, "bar-v")}
+    ${!CAT.ads[id] ? `<p class="note">Снятое объявление сохранено в архиве быстрых стартов. Дневная история старше срока хранения основного отчёта может быть недоступна.</p>` : ""}<h2>Просмотры по дням</h2>${barChart(series.map(x=>x[1][0]), lab, "bar-v")}
     <h2>Открытия номера по дням</h2>${barChart(series.map(x=>x[1][1]), lab, "bar-p")}
     <h2>События</h2>${evs.length ? `<table><tbody>${evs.map(e=>`<tr><td>${dtLocal(e[0])}</td><td>${esc(EV_NAMES[e[2]]||e[2])}</td><td class="muted">${e[2]==="price"?fmt(e[3]*EUR_RATE)+" → "+fmt(e[4]*EUR_RATE)+" €":e[2]==="raise"?dtLocal(e[3])+" → "+dtLocal(e[4]):""}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Событий пока нет.</p>`}`;
   $("#drawer").style.display = "block";
@@ -1205,10 +1222,128 @@ function viewDemand(){
  +'<p class="dem-note">Просмотры и открытия номера — прибавка счётчиков Kufar, а не уникальные люди. Для органики и продвижения используются раздельные показатели за дни, когда статус известен. Показатель «открытий / просмотров» нельзя считать подтверждённой долей позвонивших.</p></div>';
 }
 
+
+const FS = {hours:2, metric:"v", limit:50, sort:"speed", mode:"opportunities"};
+const FS_WINDOWS = [1,2,3,4,5,6,12,24];
+const FS_GAP = h => h >= 12 ? 90 : 45;
+const fsMedian = values => {
+  if(!values.length) return null;
+  const a=[...values].sort((x,y)=>x-y), m=Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+};
+const fsQuantile = (values,q) => {
+  if(!values.length) return Infinity;
+  const a=[...values].sort((x,y)=>x-y);
+  return a[Math.min(a.length-1,Math.floor(a.length*q))];
+};
+function fsRows(){
+  const selected = new Set(periodDays()), out=[];
+  for(const [id,record] of Object.entries(FAST_DATA.ads||{})){
+    const a = CAT.ads[id] || record.a || {};
+    const t=Number(record.t||0), day=dayOfTs(t), h=FS.hours;
+    if(!t || !selected.has(day) || !a || (S.newOnly&&!a.nw)) continue;
+    if(S.company!=="all" && a.c!==S.company) continue;
+    if(S.emps.size && !S.emps.has(empKey(a))) continue;
+    // Исключаем продвижение в рассматриваемые первые часы.
+    if(a.pb4 || a.rb || (a.fv && a.fv<=t+h*3600) || (a.fh && a.fh<=t+h*3600)) continue;
+    const snap=(record.w||{})[String(h)];
+    const gap=snap ? Math.round((t+h*3600-snap[2])/60) : Infinity;
+    const complete=!!snap && gap>=0 && gap<=FS_GAP(h);
+    out.push({id,a,t,day,weekday:wdOf(day),hour:hourOfTs(t),complete,
+      gap, v:complete?snap[0]:null, p:complete?snap[1]:null,
+      emp:a.seller || (CAT.ads[id] ? empName(empKey(a)) : a.cn || "Не определён"),
+      placed:t,raises:0,promo:false,dv:complete?snap[0]:0,dp:complete?snap[1]:0});
+  }
+  return out;
+}
+function fsThresholds(rows){
+  const good=rows.filter(x=>x.complete);
+  const key=FS.metric;
+  const global=fsQuantile(good.map(x=>x[key]),.8);
+  const byRoom=new Map();
+  for(const r of good){const k=roomKey(r.a.r);if(!byRoom.has(k))byRoom.set(k,[]);byRoom.get(k).push(r[key]);}
+  const roomThreshold=new Map([...byRoom].filter(([,a])=>a.length>=20).map(([k,a])=>[k,fsQuantile(a,.8)]));
+  return r=>Math.max(1,roomThreshold.get(roomKey(r.a.r))??global);
+}
+function fsStats(rows,threshold){
+  const grid=Array.from({length:7},()=>Array.from({length:24},()=>[]));
+  for(const r of rows)grid[r.weekday][r.hour].push(r);
+  return grid.map(day=>day.map(items=>{
+    const covered=items.filter(r=>r.complete), successes=covered.filter(r=>r[FS.metric]>=threshold(r));
+    return {total:items.length,n:covered.length,success:successes.length,
+      rate:covered.length?successes.length/covered.length:null,
+      med:fsMedian(covered.map(r=>r[FS.metric]))};
+  }));
+}
+function fsClassification(x,baseline){
+  if(x.n<5) return ["unknown","Мало данных"];
+  if(x.rate>=baseline && x.total<=3) return ["chance","Недооценённые"];
+  if(x.rate>=baseline) return ["good","Успешные"];
+  if(x.rate<baseline*.65) return ["bad","Неуспешные"];
+  return ["unknown","Средние"];
+}
+function fsSelect(name,values,current){
+  return '<label>'+name+'<select data-fs="'+name+'">'+values.map(([v,label])=>'<option value="'+v+'" '+(String(current)===String(v)?'selected':'')+'>'+label+'</option>').join('')+'</select></label>';
+}
+function viewFast(){
+  const rows=fsRows(), eligible=rows.filter(r=>r.complete);
+  const threshold=fsThresholds(rows);
+  for(const r of eligible)r.fast=r[FS.metric]>=threshold(r);
+  const successful=eligible.filter(r=>r.fast);
+  const baseline=eligible.length?successful.length/eligible.length:0;
+  const grid=fsStats(rows,threshold);
+  const med=fsMedian(eligible.map(r=>r[FS.metric]));
+  const type=FS.metric==="v"?"просмотров":"открытий номера";
+  const controls='<div class="fs-controls">'
+    +fsSelect("Показатель",[["v","Просмотры"],["p","Открытия номера"]],FS.metric)
+    +fsSelect("Первые часы",FS_WINDOWS.map(h=>[h,h+" ч"]),FS.hours)
+    +fsSelect("Показать",[[30,30],[50,50],[100,100],[150,150],[200,200]],FS.limit)
+    +fsSelect("Сортировка",[["speed","Быстрый старт"],["total","По результату"],["recent","Новые сначала"]],FS.sort)
+    +fsSelect("Карта",[["opportunities","Возможности"],["success","Успешность"],["competition","Конкуренция"]],FS.mode)
+    +'</div>';
+  const stats='<div class="fs-kpis">'
+    +kpi(fmt(successful.length),"Быстрых стартов",type+" за "+FS.hours+" ч")
+    +kpi(fmt(eligible.length),"Измерено достоверно","из "+fmt(rows.length)+" публикаций")
+    +kpi(med==null?"—":fmt(med),"Медиана за "+FS.hours+" ч",type)
+    +kpi(pct(successful.length,eligible.length),"Доля быстрых стартов","среди полных измерений")
+    +'</div>';
+  const map='<div class="fs-map"><div class="fs-heat"><div class="head"></div>'
+    +Array.from({length:24},(_,i)=>'<div class="head">'+i+'</div>').join('')
+    +grid.map((day,i)=>'<div class="head">'+WD[i]+'</div>'+day.map((g,h)=>{
+      const [cls,label]=fsClassification(g,baseline);
+      const useCls=FS.mode==="competition"?(g.n<5?"unknown":g.total<=3?"chance":g.total>=10?"bad":"good")
+        :FS.mode==="success"?(g.n<5?"unknown":g.rate>=baseline?"good":"bad"):cls;
+      const value=FS.mode==="competition"?fmt(g.total):g.n<5?"—":Math.round(g.rate*100)+"%";
+      const tooltip=WD[i]+", "+h+":00 · размещено "+g.total+" · с полными замерами "+g.n
+        +" · быстрых "+g.success+" · медиана "+(g.med==null?"—":fmt(g.med))+" · "+label;
+      return '<div class="cell '+useCls+'" title="'+esc(tooltip)+'">'+value+'</div>';
+    }).join('')).join('')+'</div></div>';
+  const ranking=[...successful].sort((a,b)=>{
+    if(FS.sort==="recent")return b.t-a.t;
+    if(FS.sort==="total")return b[FS.metric]-a[FS.metric]||b.t-a.t;
+    return (b[FS.metric]/FS.hours)-(a[FS.metric]/FS.hours)||b.t-a.t;
+  });
+  const cards=ranking.slice(0,FS.limit).map(r=>adCard(r,"organic",{fast:true})).join('');
+  const intervals=grid.flatMap((day,w)=>day.map((x,h)=>({w,h,...x}))).filter(x=>x.n>=5)
+    .sort((a,b)=>(b.rate-a.rate)||(b.n-a.n)).slice(0,15);
+  const table='<div class="tbl-wrap"><table class="fs-table"><thead><tr><th>День</th><th>Час</th><th>Размещено</th><th>Замерено</th><th>Успешных</th><th>Доля</th><th>Медиана</th></tr></thead><tbody>'
+    +intervals.map(x=>'<tr><td>'+WD[x.w]+'</td><td>'+x.h+':00</td><td>'+x.total+'</td><td>'+x.n+'</td><td>'+x.success+'</td><td>'+pct(x.success,x.n)+'</td><td>'+fmt(x.med)+'</td></tr>').join('')
+    +'</tbody></table></div>';
+  const empty=Object.keys(FAST_DATA.ads||{}).length ? 'Пока недостаточно точных замеров в выбранном периоде.' : 'Архив ранних замеров ещё формируется. Данные появятся после следующего сбора.';
+  return '<h2>🚀 Быстрый старт</h2>'
+    +'<p class="note">Отдельно от старого суточного значка 🚀. Быстрый старт — результат не ниже 80-го процентиля в сопоставимой комнатности (при ≥20 измерениях), иначе по всему выбранному набору. Снятые объявления сохраняются. Неполные замеры не считаются нулевыми.</p>'
+    +controls+stats
+    +'<div class="panel sec"><h2>День недели × час размещения</h2><p class="note">Доля успешных стартов, конкуренция и часы возможностей. Конкуренция — количество отслеживаемых публикаций, а не всего Kufar. «—» — меньше 5 полных измерений.</p>'+map+'</div>'
+    +'<div class="panel sec"><h2>Лучшие интервалы</h2>'+table+'</div>'
+    +'<h2 class="sec">Шахматка быстрых стартов · '+fmt(successful.length)+'</h2>'
+    +(cards?'<div class="cgrid">'+cards+'</div>':'<p class="note">'+empty+'</p>')
+    +'<p class="note">Значения — последний фактический замер не позднее конца окна и не старше '+FS_GAP(FS.hours)+' минут от его границы; без интерполяции. Результаты ночных публикаций часто неполные и исключены из долей. Открытия номера — показы телефона, не звонки.</p>';
+}
+
 // ---------- отрисовка
 function render(){
   const A = aggregate();
-  const V = {overview:viewOverview, ads:viewAds, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, organic:A=>viewTop(A,"organic"), promoted:A=>viewTop(A,"promo"), demand:()=>viewDemand()}[S.tab];
+  const V = {overview:viewOverview, ads:viewAds, employees:viewEmployees, hours:viewHours, promo:()=>viewPromo(), placed:viewPlaced, organic:A=>viewTop(A,"organic"), fast:()=>viewFast(), promoted:A=>viewTop(A,"promo"), demand:()=>viewDemand()}[S.tab];
   $("#view").innerHTML = V(A);
   renderControls();
   renderPeriodLeaders(A);
@@ -1268,6 +1403,15 @@ document.addEventListener("click", ev => {
   render(); saveState();
 });
 document.addEventListener("change", ev => {
+  if(ev.target.matches("[data-fs]")){
+    const key=ev.target.dataset.fs, val=ev.target.value;
+    if(key==="Показатель") FS.metric=val;
+    else if(key==="Первые часы") FS.hours=Number(val);
+    else if(key==="Показать") FS.limit=Number(val);
+    else if(key==="Сортировка") FS.sort=val;
+    else if(key==="Карта") FS.mode=val;
+    render(); return;
+  }
   if(ev.target.matches("[data-topcount]")){
     const next=Number(ev.target.value);
     if([10,20,30,50,100].includes(next)){ TOP_COUNT=next; render(); }
@@ -1303,7 +1447,7 @@ function loadState(){ try{ const x = JSON.parse(localStorage.getItem("radar_f")|
   if(innerWidth < 640) $("#fbox").open = false;
   $("#newOnly").checked = S.newOnly;
   try{
-    [CAT, CUBE, STATUS] = await Promise.all([getJSON("catalog"), getJSON("cube"), getJSON("status")]);
+    [CAT, CUBE, STATUS, FAST_DATA] = await Promise.all([getJSON("catalog"), getJSON("cube"), getJSON("status"), getJSON("fast").catch(()=>({ads:{}}))]);
   }catch(e){
     $("#view").innerHTML = `<div class="center">Не удалось загрузить данные. Проверьте ссылку или обновите страницу через минуту.</div>`;
     $("#status").textContent = "Нет данных"; $("#status").classList.add("warn"); return;
