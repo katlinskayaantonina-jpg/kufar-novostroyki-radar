@@ -36,6 +36,13 @@ def record_sample(rec: dict, sample: list) -> None:
     t = rec["t"]
     if ts < t:
         return
+    # До 6 часов сохраняем реальные точки измерений: они позволяют различать
+    # достижение порога за 30 минут и за 1 ч 50 мин.
+    if ts <= t + 6 * 3600:
+        points = rec.setdefault("points", [])
+        if not any(point[0] == ts for point in points):
+            points.append([int(ts), max(0, int(v)), max(0, int(p))])
+            points.sort(key=lambda point: point[0])
     for hours in WINDOWS:
         deadline = t + hours * 3600
         if ts > deadline:

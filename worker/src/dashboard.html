@@ -1237,11 +1237,12 @@ const fsQuantile = (values,q) => {
   return a[Math.min(a.length-1,Math.floor(a.length*q))];
 };
 function fsRows(){
-  const selected = new Set(periodDays()), out=[];
+  // «Всё время» включает весь накопленный архив, даже старше 92 дней cube.
+  const selected = S.period==="all" ? null : new Set(periodDays()), out=[];
   for(const [id,record] of Object.entries(FAST_DATA.ads||{})){
     const a = CAT.ads[id] || record.a || {};
     const t=Number(record.t||0), day=dayOfTs(t), h=FS.hours;
-    if(!t || !selected.has(day) || !a || (S.newOnly&&!a.nw)) continue;
+    if(!t || (selected && !selected.has(day)) || !a || (S.newOnly&&!a.nw)) continue;
     if(S.company!=="all" && a.c!==S.company) continue;
     if(S.emps.size && !S.emps.has(empKey(a))) continue;
     // Исключаем продвижение в рассматриваемые первые часы.
@@ -1250,9 +1251,29 @@ function fsRows(){
     const gap=snap ? Math.round((t+h*3600-snap[2])/60) : Infinity;
     const complete=!!snap && gap>=0 && gap<=FS_GAP(h);
     out.push({id,a,t,day,weekday:wdOf(day),hour:hourOfTs(t),complete,
-      gap, v:complete?snap[0]:null, p:complete?snap[1]:null,
+      gap, points:record.points||[], v:complete?snap[0]:null, p:complete?snap[1]:null,
       emp:a.seller || (CAT.ads[id] ? empName(empKey(a)) : a.cn || "Не определён"),
       placed:t,raises:0,promo:false,dv:complete?snap[0]:0,dp:complete?snap[1]:0});
+  }
+  // Конкуренция: новые объявления той же комнатности у ВСЕХ отслеживаемых
+  // компаний в следующие h часов, независимо от выбранного фильтра компании.
+  const byRoom=new Map();
+  for(const [aid,rec] of Object.entries(FAST_DATA.ads||{})){
+    const a=CAT.ads[aid]||rec.a||{};
+    if(!rec.t || (S.newOnly&&!a.nw)) continue;
+    const room=roomKey(a.r);
+    if(!byRoom.has(room))byRoom.set(room,[]);
+    byRoom.get(room).push([Number(rec.t),aid]);
+  }
+  for(const posts of byRoom.values())posts.sort((a,b)=>a[0]-b[0]);
+  for(const r of out){
+    const posts=byRoom.get(roomKey(r.a.r))||[];
+    let lo=0,hi=posts.length;
+    while(lo<hi){const mid=(lo+hi)>>1;if(posts[mid][0]<r.t)lo=mid+1;else hi=mid;}
+    let comp=0;
+    for(let j=lo;j<posts.length&&posts[j][0]<=r.t+FS.hours*3600;j++)
+      if(posts[j][1]!==r.id)comp++;
+    r.competition=comp;
   }
   return out;
 }
@@ -1272,12 +1293,13 @@ function fsStats(rows,threshold){
     const covered=items.filter(r=>r.complete), successes=covered.filter(r=>r[FS.metric]>=threshold(r));
     return {total:items.length,n:covered.length,success:successes.length,
       rate:covered.length?successes.length/covered.length:null,
+      competition:fsMedian(items.map(r=>r.competition||0)),
       med:fsMedian(covered.map(r=>r[FS.metric]))};
   }));
 }
-function fsClassification(x,baseline){
+function fsClassification(x,baseline,lowCompetition){
   if(x.n<5) return ["unknown","Мало данных"];
-  if(x.rate>=baseline && x.total<=3) return ["chance","Недооценённые"];
+  if(x.rate>=baseline && x.competition<=lowCompetition) return ["chance","Недооценённые"];
   if(x.rate>=baseline) return ["good","Успешные"];
   if(x.rate<baseline*.65) return ["bad","Неуспешные"];
   return ["unknown","Средние"];
@@ -1288,17 +1310,24 @@ function fsSelect(name,values,current){
 function viewFast(){
   const rows=fsRows(), eligible=rows.filter(r=>r.complete);
   const threshold=fsThresholds(rows);
-  for(const r of eligible)r.fast=r[FS.metric]>=threshold(r);
+  for(const r of eligible){
+    r.fast=r[FS.metric]>=threshold(r);
+    const k=FS.metric==="v"?1:2, target=threshold(r);
+    const crossing=r.points.find(pt=>pt[0]<=r.t+FS.hours*3600 && pt[k]>=target);
+    r.crossedAt=crossing?crossing[0]-r.t:FS.hours*3600+1;
+  }
   const successful=eligible.filter(r=>r.fast);
   const baseline=eligible.length?successful.length/eligible.length:0;
   const grid=fsStats(rows,threshold);
+  const validCells=grid.flat().filter(x=>x.n>=5);
+  const lowCompetition=fsQuantile(validCells.map(x=>x.competition),.25);
   const med=fsMedian(eligible.map(r=>r[FS.metric]));
   const type=FS.metric==="v"?"просмотров":"открытий номера";
   const controls='<div class="fs-controls">'
     +fsSelect("Показатель",[["v","Просмотры"],["p","Открытия номера"]],FS.metric)
     +fsSelect("Первые часы",FS_WINDOWS.map(h=>[h,h+" ч"]),FS.hours)
     +fsSelect("Показать",[[30,30],[50,50],[100,100],[150,150],[200,200]],FS.limit)
-    +fsSelect("Сортировка",[["speed","Быстрый старт"],["total","По результату"],["recent","Новые сначала"]],FS.sort)
+    +fsSelect("Сортировка",[["speed","Быстрее достигли порога"],["total","По результату"],["recent","Новые сначала"]],FS.sort)
     +fsSelect("Карта",[["opportunities","Возможности"],["success","Успешность"],["competition","Конкуренция"]],FS.mode)
     +'</div>';
   const stats='<div class="fs-kpis">'
@@ -1310,34 +1339,34 @@ function viewFast(){
   const map='<div class="fs-map"><div class="fs-heat"><div class="head"></div>'
     +Array.from({length:24},(_,i)=>'<div class="head">'+i+'</div>').join('')
     +grid.map((day,i)=>'<div class="head">'+WD[i]+'</div>'+day.map((g,h)=>{
-      const [cls,label]=fsClassification(g,baseline);
-      const useCls=FS.mode==="competition"?(g.n<5?"unknown":g.total<=3?"chance":g.total>=10?"bad":"good")
+      const [cls,label]=fsClassification(g,baseline,lowCompetition);
+      const useCls=FS.mode==="competition"?(g.n<5?"unknown":g.competition<=lowCompetition?"chance":g.competition>lowCompetition*2?"bad":"good")
         :FS.mode==="success"?(g.n<5?"unknown":g.rate>=baseline?"good":"bad"):cls;
-      const value=FS.mode==="competition"?fmt(g.total):g.n<5?"—":Math.round(g.rate*100)+"%";
+      const value=FS.mode==="competition"?(g.competition==null?"—":fmt(g.competition)):g.n<5?"—":Math.round(g.rate*100)+"%";
       const tooltip=WD[i]+", "+h+":00 · размещено "+g.total+" · с полными замерами "+g.n
-        +" · быстрых "+g.success+" · медиана "+(g.med==null?"—":fmt(g.med))+" · "+label;
+        +" · новых конкурентов в первые "+FS.hours+" ч (медиана) "+(g.competition==null?"—":fmt(g.competition))+" · быстрых "+g.success+" · медиана "+(g.med==null?"—":fmt(g.med))+" · "+label;
       return '<div class="cell '+useCls+'" title="'+esc(tooltip)+'">'+value+'</div>';
     }).join('')).join('')+'</div></div>';
   const ranking=[...successful].sort((a,b)=>{
     if(FS.sort==="recent")return b.t-a.t;
     if(FS.sort==="total")return b[FS.metric]-a[FS.metric]||b.t-a.t;
-    return (b[FS.metric]/FS.hours)-(a[FS.metric]/FS.hours)||b.t-a.t;
+    return a.crossedAt-b.crossedAt || b[FS.metric]-a[FS.metric] || b.t-a.t;
   });
   const cards=ranking.slice(0,FS.limit).map(r=>adCard(r,"organic",{fast:true})).join('');
   const intervals=grid.flatMap((day,w)=>day.map((x,h)=>({w,h,...x}))).filter(x=>x.n>=5)
     .sort((a,b)=>(b.rate-a.rate)||(b.n-a.n)).slice(0,15);
-  const table='<div class="tbl-wrap"><table class="fs-table"><thead><tr><th>День</th><th>Час</th><th>Размещено</th><th>Замерено</th><th>Успешных</th><th>Доля</th><th>Медиана</th></tr></thead><tbody>'
-    +intervals.map(x=>'<tr><td>'+WD[x.w]+'</td><td>'+x.h+':00</td><td>'+x.total+'</td><td>'+x.n+'</td><td>'+x.success+'</td><td>'+pct(x.success,x.n)+'</td><td>'+fmt(x.med)+'</td></tr>').join('')
+  const table='<div class="tbl-wrap"><table class="fs-table"><thead><tr><th>День</th><th>Час</th><th>Публикаций</th><th>Замерено</th><th>Конкурентов (медиана)</th><th>Успешных</th><th>Доля</th><th>Медиана</th></tr></thead><tbody>'
+    +intervals.map(x=>'<tr><td>'+WD[x.w]+'</td><td>'+x.h+':00</td><td>'+x.total+'</td><td>'+x.n+'</td><td>'+fmt(x.competition)+'</td><td>'+x.success+'</td><td>'+pct(x.success,x.n)+'</td><td>'+fmt(x.med)+'</td></tr>').join('')
     +'</tbody></table></div>';
   const empty=Object.keys(FAST_DATA.ads||{}).length ? 'Пока недостаточно точных замеров в выбранном периоде.' : 'Архив ранних замеров ещё формируется. Данные появятся после следующего сбора.';
   return '<h2>🚀 Быстрый старт</h2>'
     +'<p class="note">Отдельно от старого суточного значка 🚀. Быстрый старт — результат не ниже 80-го процентиля в сопоставимой комнатности (при ≥20 измерениях), иначе по всему выбранному набору. Снятые объявления сохраняются. Неполные замеры не считаются нулевыми.</p>'
     +controls+stats
-    +'<div class="panel sec"><h2>День недели × час размещения</h2><p class="note">Доля успешных стартов, конкуренция и часы возможностей. Конкуренция — количество отслеживаемых публикаций, а не всего Kufar. «—» — меньше 5 полных измерений.</p>'+map+'</div>'
+    +'<div class="panel sec"><h2>День недели × час размещения</h2><p class="note">Доля успешных стартов, конкуренция и часы возможностей. Конкуренция — медианное число новых объявлений той же комнатности у всех отслеживаемых компаний в первые выбранные часы, а не всего Kufar. «—» — меньше 5 полных измерений.</p>'+map+'</div>'
     +'<div class="panel sec"><h2>Лучшие интервалы</h2>'+table+'</div>'
     +'<h2 class="sec">Шахматка быстрых стартов · '+fmt(successful.length)+'</h2>'
     +(cards?'<div class="cgrid">'+cards+'</div>':'<p class="note">'+empty+'</p>')
-    +'<p class="note">Значения — последний фактический замер не позднее конца окна и не старше '+FS_GAP(FS.hours)+' минут от его границы; без интерполяции. Результаты ночных публикаций часто неполные и исключены из долей. Открытия номера — показы телефона, не звонки.</p>';
+    +'<p class="note">Сортировка по скорости использует первый замер, на котором достигнут порог; фактическое достижение могло произойти раньше. Значения — последний фактический замер не позднее конца окна и не старше '+FS_GAP(FS.hours)+' минут от его границы; без интерполяции. Результаты ночных публикаций часто неполные и исключены из долей. Открытия номера — показы телефона, не звонки.</p>';
 }
 
 // ---------- отрисовка
