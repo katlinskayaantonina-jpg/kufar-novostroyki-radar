@@ -24,6 +24,15 @@ const late = {
 context.fixtures={cat:{ads:{},profiles:{},companies:{et:'Этажи'}},
  cube:{days:{'2026-11-20':{a:{},ph:[],vh:[],ev:[],cov:{},runs:[]}}},
  fast:{ads:{'100':archive,'101':late}}};
+// Исторический эталон: 12 полных замеров, независимых от выбранного дня.
+for(let i=0;i<12;i++){
+ const past=ts-(i+1)*86400;
+ context.fixtures.fast.ads[String(200+i)]={
+   t:past,a:{...ad,t:'Исторический пример'},
+   w:{'2':[20+i,1,past+7000]},
+   points:[[past+7000,20+i,1]]
+ };
+}
 vm.runInContext('CAT=fixtures.cat;CUBE=fixtures.cube;FAST_DATA=fixtures.fast;S.period="custom";S.from="2026-11-20";S.to="2026-11-20";S.company="all";S.newOnly=false;',context);
 
 test('removed organic ad is retained but incomplete observations are excluded',()=>{

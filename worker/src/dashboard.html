@@ -1236,15 +1236,15 @@ const fsQuantile = (values,q) => {
   const a=[...values].sort((x,y)=>x-y);
   return a[Math.min(a.length-1,Math.floor(a.length*q))];
 };
-function fsRows(){
-  // «Всё время» включает весь накопленный архив, даже старше 92 дней cube.
-  const selected = S.period==="all" ? null : new Set(periodDays()), out=[];
+function fsRows(allPeriods=false, allCompanies=false){
+  // Для стабильного эталона используем весь архив, независимо от периода.
+  const selected = allPeriods || S.period==="all" ? null : new Set(periodDays()), out=[];
   for(const [id,record] of Object.entries(FAST_DATA.ads||{})){
     const a = CAT.ads[id] || record.a || {};
     const t=Number(record.t||0), day=dayOfTs(t), h=FS.hours;
     if(!t || (selected && !selected.has(day)) || !a || (S.newOnly&&!a.nw)) continue;
-    if(S.company!=="all" && a.c!==S.company) continue;
-    if(S.emps.size && !S.emps.has(empKey(a))) continue;
+    if(!allCompanies && S.company!=="all" && a.c!==S.company) continue;
+    if(!allCompanies && S.emps.size && !S.emps.has(empKey(a))) continue;
     // Исключаем продвижение в рассматриваемые первые часы.
     if(a.pb4 || a.rb || (a.fv && a.fv<=t+h*3600) || (a.fh && a.fh<=t+h*3600)) continue;
     const snap=(record.w||{})[String(h)];
@@ -1309,9 +1309,12 @@ function fsSelect(name,values,current){
 }
 function viewFast(){
   const rows=fsRows(), eligible=rows.filter(r=>r.complete);
-  const threshold=fsThresholds(rows);
+  // Порог вычисляется по общей истории сопоставимых объявлений,
+  // чтобы переключение даты/компании не переклассифицировало прошлый старт.
+  const benchmark=fsRows(true,true).filter(r=>r.complete);
+  const threshold=fsThresholds(benchmark);
   for(const r of eligible){
-    r.fast=r[FS.metric]>=threshold(r);
+    r.fast=benchmark.length>=10 && r[FS.metric]>=threshold(r);
     const k=FS.metric==="v"?1:2, target=threshold(r);
     const crossing=r.points.find(pt=>pt[0]<=r.t+FS.hours*3600 && pt[k]>=target);
     r.crossedAt=crossing?crossing[0]-r.t:FS.hours*3600+1;
@@ -1360,7 +1363,7 @@ function viewFast(){
     +'</tbody></table></div>';
   const empty=Object.keys(FAST_DATA.ads||{}).length ? 'Пока недостаточно точных замеров в выбранном периоде.' : 'Архив ранних замеров ещё формируется. Данные появятся после следующего сбора.';
   return '<h2>🚀 Быстрый старт</h2>'
-    +'<p class="note">Отдельно от старого суточного значка 🚀. Быстрый старт — результат не ниже 80-го процентиля в сопоставимой комнатности (при ≥20 измерениях), иначе по всему выбранному набору. Снятые объявления сохраняются. Неполные замеры не считаются нулевыми.</p>'
+    +'<p class="note">Отдельно от старого суточного значка 🚀. Быстрый старт — результат не ниже 80-го процентиля по всей доступной истории в сопоставимой комнатности (при ≥20 измерениях), иначе по всей истории; нужно не менее 10 полных измерений для эталона. Снятые объявления сохраняются. Неполные замеры не считаются нулевыми.</p>'
     +controls+stats
     +'<div class="panel sec"><h2>День недели × час размещения</h2><p class="note">Доля успешных стартов, конкуренция и часы возможностей. Конкуренция — медианное число новых объявлений той же комнатности у всех отслеживаемых компаний в первые выбранные часы, а не всего Kufar. «—» — меньше 5 полных измерений.</p>'+map+'</div>'
     +'<div class="panel sec"><h2>Лучшие интервалы</h2>'+table+'</div>'
