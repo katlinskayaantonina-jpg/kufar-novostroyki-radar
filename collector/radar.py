@@ -236,6 +236,30 @@ def iso_to_ts(s: str) -> int | None:
         return None
 
 
+def history_value(value) -> str:
+    """Normalize one observed characteristic; absence is not a change."""
+    if isinstance(value, (list, tuple)):
+        value = value[0] if len(value) == 1 else None
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def record_characteristic_changes(state, parsed, emit):
+    # Existing room value is the baseline for records created before this feature.
+    # Keep the last known value if a later response omits the field.
+    for key, baseline, kind in (("r", "r_hist", "rooms"), ("yb", "yb", "year_built")):
+        old = history_value(state.get(baseline, state.get(key)))
+        new = history_value(parsed.get(key))
+        if not new:
+            if old:
+                state[baseline] = old
+            continue
+        if old and old != new:
+            emit(kind, old, new)
+        state[baseline] = new
+
+
 def parse_ad(ad: dict) -> dict:
     acc = pe(ad.get("account_parameters"))
     ap = pe(ad.get("ad_parameters"))
@@ -258,6 +282,7 @@ def parse_ad(ad: dict) -> dict:
         "acc": str(ad.get("account_id") or ""),
         "t": str(ad.get("subject") or "").strip(),
         "r": str(rooms) if rooms not in (None, "") else "",
+        "yb": history_value(_v(ap, "year_built")),
         "a": _num(_v(ap, "size")),
         "fl": str(_v(ap, "floor") or ""),
         "ft": str(_v(ap, "re_number_floors") or ""),
@@ -630,6 +655,7 @@ def main() -> int:
                 ev(aid, "title", s["t"], r["t"])
             if s.get("img") and s["img"] != r["img"]:
                 ev(aid, "photo")
+        record_characteristic_changes(s, r, lambda kind, old, new: ev(aid, kind, old, new))
         s.update({k: r[k] for k in ("t", "r", "a", "fl", "ft", "pu", "pb", "pe", "cur", "ad", "lt", "img", "ni", "hl", "pp", "rb",
                                      "nw", "cond", "dist", "lat", "lon", "cn")})
         s["c"] = company
@@ -837,7 +863,7 @@ def main() -> int:
     size_state = kv.put_json("state", state)
     size_cube = kv.put_json("cube", cube)
 
-    catalog_fields = ("c", "pid", "cn", "t", "r", "a", "fl", "ft", "pu", "pe", "ad", "lt", "lt0", "fs", "ls", "act", "fv", "fh", "pb4",
+    catalog_fields = ("c", "pid", "cn", "t", "r", "yb", "a", "fl", "ft", "pu", "pe", "ad", "lt", "lt0", "fs", "ls", "act", "fv", "fh", "pb4",
                       "img", "ni", "hl", "pp", "rb", "nw", "v", "p")
     catalog = {
         "generated": run_ts,
